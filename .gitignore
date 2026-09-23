@@ -1,0 +1,33 @@
+# ── Java / Maven ──────────────────────────────────────────────
+backend/target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/
+mvnw
+mvnw.cmd
+*.log
+hs_err_pid*
+
+# ── Node / Vite ───────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+*.local
+.npm
+.eslintcache
+
+# ── Environments & secrets (never commit real values) ─────────
+.env
+.env.*
+!.env.example
+
+# ── IDE / OS ──────────────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# ── Coverage / test artifacts ─────────────────────────────────
+coverage/
+*.exec
