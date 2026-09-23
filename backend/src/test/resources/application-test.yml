@@ -1,0 +1,43 @@
+# =============================================================================
+# Integration-test profile.
+# Requires a PostgreSQL 15+ instance (see README for the docker-free setup):
+#
+#   createdb driveease_test
+#
+# Override TEST_DB_* in CI. Flyway builds the schema from the same migrations
+# used in production, so integration tests exercise the real schema.
+# =============================================================================
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/driveease_test}
+    username: ${TEST_DB_USERNAME:postgres}
+    password: ${TEST_DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    clean-disabled: false
+    clean-on-validation-error: true
+
+driveease:
+  seed:
+    enabled: false
+  jwt:
+    secret: integration-test-secret-key-that-is-long-enough-for-hs256
+    access-token-ttl-seconds: 3600
+    refresh-token-ttl-seconds: 3600
+  payment:
+    gateway-mode: SANDBOX
+    failure-threshold-amount: 100000.00
+  email:
+    provider: mock
+  cors:
+    allowed-origins: http://localhost:5173
+
+logging:
+  level:
+    root: WARN
+    com.driveease: INFO
+    org.flywaydb: INFO

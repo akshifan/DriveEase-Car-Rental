@@ -1,0 +1,47 @@
+# =============================================================================
+# DriveEase API - production profile
+# Schema is managed exclusively by Flyway. ddl-auto is pinned to validate.
+# Never ship default secrets: the values below fail fast when unset.
+# =============================================================================
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      connection-timeout: 30000
+      pool-name: driveease-prod-pool
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    clean-disabled: true
+    baseline-on-migrate: false
+
+server:
+  # Behind a managed reverse proxy (Vercel -> API host, or platform LB)
+  forward-headers-strategy: framework
+
+driveease:
+  seed:
+    enabled: false
+  jwt:
+    secret: ${JWT_SECRET}
+    cookie:
+      secure: true
+      same-site: None
+  payment:
+    gateway-mode: ${PAYMENT_GATEWAY_MODE:SANDBOX}
+  email:
+    provider: ${EMAIL_PROVIDER:mock}
+  cors:
+    allowed-origins: ${FRONTEND_URL}
+
+logging:
+  level:
+    root: WARN
+    com.driveease: INFO

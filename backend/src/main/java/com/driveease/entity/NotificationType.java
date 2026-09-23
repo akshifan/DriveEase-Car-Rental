@@ -1,0 +1,14 @@
+package com.driveease.entity;
+
+public enum NotificationType {
+    BOOKING_CREATED,
+    BOOKING_CONFIRMED,
+    BOOKING_ACTIVE,
+    BOOKING_COMPLETED,
+    BOOKING_CANCELLED,
+    PAYMENT_RECEIVED,
+    PAYMENT_FAILED,
+    REFUND_ISSUED,
+    REVIEW_INVITATION,
+    ACCOUNT_STATUS
+}

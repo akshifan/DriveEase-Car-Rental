@@ -1,0 +1,101 @@
+# =============================================================================
+# DriveEase API - base configuration
+# Profile-specific overrides live in application-dev.yml / application-prod.yml
+# Every sensitive value is supplied through environment variables.
+# =============================================================================
+spring:
+  application:
+    name: driveease-api
+  profiles:
+    default: dev
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+  jpa:
+    hibernate:
+      ddl-auto: validate          # Flyway owns the schema, Hibernate only validates
+    open-in-view: false           # no lazy loading inside the view layer
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 30
+        order_inserts: true
+        order_updates: true
+        format_sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  data:
+    web:
+      pageable:
+        default-page-size: 20
+        max-page-size: 100
+        one-indexed-parameters: false
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+  compression:
+    enabled: true
+  tomcat:
+    max-http-form-post-size: 2MB
+
+driveease:
+  jwt:
+    # MUST be overridden in every real environment (>= 32 bytes for HS256)
+    secret: ${JWT_SECRET:driveease-development-only-secret-key-change-me-32b}
+    issuer: driveease-api
+    access-token-ttl-seconds: ${JWT_ACCESS_EXPIRATION:3600}       # 1 hour  (PRD US-01-02)
+    refresh-token-ttl-seconds: ${JWT_REFRESH_EXPIRATION:604800}   # 7 days  (PRD US-01-02)
+    reset-token-ttl-minutes: ${PASSWORD_RESET_EXPIRATION:30}      # 30 min  (PRD US-01-04)
+    cookie:
+      refresh-name: driveease_refresh
+      secure: ${COOKIE_SECURE:false}
+      same-site: ${COOKIE_SAME_SITE:Lax}
+      domain: ${COOKIE_DOMAIN:}
+      path: /api/v1/auth
+  cors:
+    allowed-origins: ${FRONTEND_URL:http://localhost:5173}
+  payment:
+    gateway-mode: ${PAYMENT_GATEWAY_MODE:SANDBOX}   # SANDBOX | ALWAYS_SUCCEED | ALWAYS_FAIL
+    failure-threshold-amount: ${PAYMENT_FAILURE_THRESHOLD:100000.00}
+    reference-prefix: ${PAYMENT_REFERENCE_PREFIX:DE-TXN}
+  booking:
+    max-advance-days: ${BOOKING_MAX_ADVANCE_DAYS:180}
+    min-rental-days: 1
+    max-rental-days: ${BOOKING_MAX_RENTAL_DAYS:60}
+  email:
+    provider: ${EMAIL_PROVIDER:mock}                 # mock | smtp
+    from: ${EMAIL_FROM:no-reply@driveease.app}
+    from-name: ${EMAIL_FROM_NAME:DriveEase}
+    app-base-url: ${APP_BASE_URL:http://localhost:5173}
+  uploads:
+    directory: ${UPLOAD_DIR:./uploads}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+  default-produces-media-type: application/json
+
+logging:
+  level:
+    root: INFO
+    com.driveease: INFO
+    org.hibernate.SQL: WARN
