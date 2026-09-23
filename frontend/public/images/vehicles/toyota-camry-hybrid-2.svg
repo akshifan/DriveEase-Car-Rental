@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="1200" height="750"
+     role="img" aria-label="Toyota Camry Hybrid front three-quarter illustration">
+  <title>Toyota Camry Hybrid - front view</title>
+  <defs>
+    <linearGradient id="body-toyota-camry-hybrid-2" x1="0" y1="0" x2="0.25" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.45" stop-color="#E8ECF1"/>
+      <stop offset="1" stop-color="#AEB8C4"/>
+    </linearGradient>
+    <linearGradient id="glass-toyota-camry-hybrid-2" x1="0.1" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#243044" stop-opacity="0.95"/>
+      <stop offset="0.55" stop-color="#243044"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="rim-toyota-camry-hybrid-2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#D9DEE6"/>
+      <stop offset="0.6" stop-color="#8E97A3"/>
+      <stop offset="1" stop-color="#4C545F"/>
+    </linearGradient>
+    <radialGradient id="bg-toyota-camry-hybrid-2" cx="0.5" cy="0.34" r="0.78">
+      <stop offset="0" stop-color="#0C1218"/>
+      <stop offset="0.55" stop-color="#080B0F"/>
+      <stop offset="1" stop-color="#05070A"/>
+    </radialGradient>
+    <radialGradient id="glow-toyota-camry-hybrid-2" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7FD1E0" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#7FD1E0" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft-toyota-camry-hybrid-2" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="750" fill="url(#bg-toyota-camry-hybrid-2)"/>
+  <ellipse cx="600" cy="330" rx="560" ry="260" fill="url(#glow-toyota-camry-hybrid-2)" opacity="0.5"/>
+  <path d="M0 560h1200" stroke="#FFFFFF" stroke-opacity="0.07"/>
+  <rect y="560" width="1200" height="190" fill="#FFFFFF" fill-opacity="0.015"/>
+  <g stroke="#FFFFFF" stroke-opacity="0.035">
+    <path d="M0 612h1200M0 664h1200M0 716h1200"/>
+    <path d="M180 560v190M420 560v190M660 560v190M900 560v190"/>
+  </g>
+  <ellipse cx="600" cy="566" rx="430" ry="26" fill="#000000" opacity="0.55" filter="url(#soft-toyota-camry-hybrid-2)"/>
+  <g>
+    <ellipse cx="600" cy="546" rx="410" ry="58" fill="#000000" fill-opacity="0.38" filter="url(#soft-toyota-camry-hybrid-2)"/>
+
+    <rect x="256" y="474" width="84" height="84" rx="38" fill="#0B0E12"/>
+    <rect x="860" y="474" width="84" height="84" rx="38" fill="#0B0E12"/>
+
+    <path d="M266 560 Q252 436 276 420
+             Q290 306 346 296
+             L854 296
+             Q910 306 924 420
+             Q948 436 934 560 Z"
+          fill="url(#body-toyota-camry-hybrid-2)" stroke="url(#body-toyota-camry-hybrid-2)" stroke-width="24" stroke-linejoin="round"/>
+
+    <path d="M344 312 L396 442
+             L804 442 L856 312 Z"
+          fill="url(#glass-toyota-camry-hybrid-2)" stroke="#AEB8C4" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M352 300 L848 300 L840 318
+             L360 318 Z" fill="#FFFFFF" fill-opacity="0.9"/>
+    <path d="M396 442 L804 442"
+          stroke="#000000" stroke-opacity="0.22" stroke-width="6"/>
+
+    <rect x="278" y="348" width="52" height="26" rx="12" fill="#AEB8C4"/>
+    <rect x="870" y="348" width="52" height="26" rx="12" fill="#AEB8C4"/>
+
+    <rect x="432" y="484" width="336" height="58" rx="18" fill="#0C1015" fill-opacity="0.95"/>
+    <g fill="#C9D2DC" fill-opacity="0.55">
+      <rect x="450" y="494" width="300" height="6" rx="3"/>
+      <rect x="450" y="510" width="300" height="6" rx="3"/>
+      <rect x="450" y="526" width="300" height="6" rx="3"/>
+    </g>
+
+    <ellipse cx="352" cy="490" rx="80" ry="40" fill="url(#glow-toyota-camry-hybrid-2)"/>
+    <ellipse cx="848" cy="490" rx="80" ry="40" fill="url(#glow-toyota-camry-hybrid-2)"/>
+    <path d="M298 470 L450 462 L450 514 L306 522 Z"
+          fill="#F4F8FC"/>
+    <path d="M902 470 L750 462 L750 514 L894 522 Z"
+          fill="#F4F8FC"/>
+    <path d="M306 504 L448 496 L448 514 L306 522 Z"
+          fill="#D7F24B" fill-opacity="0.8"/>
+    <path d="M894 504 L752 496 L752 514 L894 522 Z"
+          fill="#D7F24B" fill-opacity="0.8"/>
+
+    <rect x="496" y="570" width="208" height="40" rx="10" fill="#E9EEF4" fill-opacity="0.9"/>
+    <rect x="516" y="580" width="168" height="20" rx="6" fill="#0C1015" fill-opacity="0.75"/>
+
+    <circle cx="386" cy="576" r="26" fill="#0C1015" fill-opacity="0.85"/>
+    <circle cx="814" cy="576" r="26" fill="#0C1015" fill-opacity="0.85"/>
+    <circle cx="386" cy="576" r="12" fill="#F4F8FC" fill-opacity="0.75"/>
+    <circle cx="814" cy="576" r="12" fill="#F4F8FC" fill-opacity="0.75"/>
+
+    <path d="M274 430 Q238 414 224 396" stroke="#AEB8C4" stroke-width="15"
+          stroke-linecap="round" fill="none"/>
+    <path d="M926 430 Q962 414 976 396" stroke="#AEB8C4" stroke-width="15"
+          stroke-linecap="round" fill="none"/>
+    <path d="M282 486 L290 552 M918 486 L910 552"
+          stroke="#000000" stroke-opacity="0.26" stroke-width="6"/>
+    <path d="M472 636 h256" stroke="#D7F24B" stroke-opacity="0.75" stroke-width="6"
+          stroke-linecap="round"/>
+  </g>
+</svg>

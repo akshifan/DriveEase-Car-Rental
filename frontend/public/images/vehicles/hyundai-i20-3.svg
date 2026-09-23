@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="1200" height="750"
+     role="img" aria-label="Hyundai I20 plan view illustration">
+  <title>Hyundai I20 - plan view</title>
+  <defs>
+    <linearGradient id="body-hyundai-i20-3" x1="0" y1="0" x2="0.25" y2="1">
+      <stop offset="0" stop-color="#5D93F0"/>
+      <stop offset="0.45" stop-color="#2F6BD8"/>
+      <stop offset="1" stop-color="#1A428F"/>
+    </linearGradient>
+    <linearGradient id="glass-hyundai-i20-3" x1="0.1" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#1C2735" stop-opacity="0.95"/>
+      <stop offset="0.55" stop-color="#1C2735"/>
+      <stop offset="1" stop-color="#5D93F0" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="rim-hyundai-i20-3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#D9DEE6"/>
+      <stop offset="0.6" stop-color="#8E97A3"/>
+      <stop offset="1" stop-color="#4C545F"/>
+    </linearGradient>
+    <radialGradient id="bg-hyundai-i20-3" cx="0.5" cy="0.34" r="0.78">
+      <stop offset="0" stop-color="#0A0F18"/>
+      <stop offset="0.55" stop-color="#080B0F"/>
+      <stop offset="1" stop-color="#05070A"/>
+    </radialGradient>
+    <radialGradient id="glow-hyundai-i20-3" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#6FA8FF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#6FA8FF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft-hyundai-i20-3" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="750" fill="url(#bg-hyundai-i20-3)"/>
+  <ellipse cx="600" cy="330" rx="560" ry="260" fill="url(#glow-hyundai-i20-3)" opacity="0.5"/>
+  <path d="M0 560h1200" stroke="#FFFFFF" stroke-opacity="0.07"/>
+  <rect y="560" width="1200" height="190" fill="#FFFFFF" fill-opacity="0.015"/>
+  <g stroke="#FFFFFF" stroke-opacity="0.035">
+    <path d="M0 612h1200M0 664h1200M0 716h1200"/>
+    <path d="M180 560v190M420 560v190M660 560v190M900 560v190"/>
+  </g>
+  <ellipse cx="600" cy="566" rx="430" ry="26" fill="#000000" opacity="0.55" filter="url(#soft-hyundai-i20-3)"/>
+  <g>
+    <rect x="339.0" y="330.2" width="68" height="132" rx="22" fill="#0B0E12"/>
+    <rect x="793.0" y="330.2" width="68" height="132" rx="22" fill="#0B0E12"/>
+    <rect x="339.0" y="582.92" width="68" height="132" rx="22" fill="#0B0E12"/>
+    <rect x="793.0" y="582.92" width="68" height="132" rx="22" fill="#0B0E12"/>
+    <rect x="411.0" y="233.0" width="378" height="486" rx="117.17999999999999"
+          fill="url(#body-hyundai-i20-3)" stroke="url(#body-hyundai-i20-3)" stroke-width="18"/>
+    <rect x="437.0" y="277.0" width="326" height="390" rx="98.28"
+          fill="none" stroke="#000000" stroke-opacity="0.22" stroke-width="4"/>
+    <path d="M485.0 375.36 Q600 329.36 715.0 375.36
+             L693.0 441.36 Q600 409.36 507.0 441.36 Z"
+          fill="url(#glass-hyundai-i20-3)" stroke="url(#glass-hyundai-i20-3)" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M507.0 491.20000000000005 Q600 523.2 693.0 491.20000000000005
+             L715.0 557.2 Q600 603.2 485.0 557.2 Z"
+          fill="url(#glass-hyundai-i20-3)" stroke="url(#glass-hyundai-i20-3)" stroke-width="8" stroke-linejoin="round"/>
+    <rect x="529.0" y="477.36" width="142" height="-22.159999999999968"
+          rx="34" fill="#2F6BD8" fill-opacity="0.55" stroke="#FFFFFF" stroke-opacity="0.12"/>
+    <path d="M515.0 515.36 L685.0 515.36"
+          stroke="#000000" stroke-opacity="0.2" stroke-width="4"/>
+    <rect x="371.0" y="389.36" width="44" height="22" rx="10" fill="#1A428F"/>
+    <rect x="785.0" y="389.36" width="44" height="22" rx="10" fill="#1A428F"/>
+    <rect x="451.0" y="259.0" width="120" height="26" rx="13" fill="#F3F7FB" fill-opacity="0.9"/>
+    <rect x="629.0" y="259.0" width="120" height="26" rx="13" fill="#F3F7FB" fill-opacity="0.9"/>
+    <rect x="451.0" y="667.0" width="120" height="26" rx="13" fill="#D7F24B" fill-opacity="0.85"/>
+    <rect x="629.0" y="667.0" width="120" height="26" rx="13" fill="#D7F24B" fill-opacity="0.85"/>
+    <path d="M600 239.0 L600 275.0" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="6"/>
+  </g>
+</svg>

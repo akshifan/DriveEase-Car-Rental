@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="1200" height="750"
+     role="img" aria-label="Maruti Suzuki Baleno front three-quarter illustration">
+  <title>Maruti Suzuki Baleno - front view</title>
+  <defs>
+    <linearGradient id="body-maruti-suzuki-baleno-2" x1="0" y1="0" x2="0.25" y2="1">
+      <stop offset="0" stop-color="#E4634F"/>
+      <stop offset="0.45" stop-color="#C33A2C"/>
+      <stop offset="1" stop-color="#8B241A"/>
+    </linearGradient>
+    <linearGradient id="glass-maruti-suzuki-baleno-2" x1="0.1" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#232E3B" stop-opacity="0.95"/>
+      <stop offset="0.55" stop-color="#232E3B"/>
+      <stop offset="1" stop-color="#E4634F" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="rim-maruti-suzuki-baleno-2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#D9DEE6"/>
+      <stop offset="0.6" stop-color="#8E97A3"/>
+      <stop offset="1" stop-color="#4C545F"/>
+    </linearGradient>
+    <radialGradient id="bg-maruti-suzuki-baleno-2" cx="0.5" cy="0.34" r="0.78">
+      <stop offset="0" stop-color="#120A09"/>
+      <stop offset="0.55" stop-color="#080B0F"/>
+      <stop offset="1" stop-color="#05070A"/>
+    </radialGradient>
+    <radialGradient id="glow-maruti-suzuki-baleno-2" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FF8A6B" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#FF8A6B" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft-maruti-suzuki-baleno-2" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="750" fill="url(#bg-maruti-suzuki-baleno-2)"/>
+  <ellipse cx="600" cy="330" rx="560" ry="260" fill="url(#glow-maruti-suzuki-baleno-2)" opacity="0.5"/>
+  <path d="M0 560h1200" stroke="#FFFFFF" stroke-opacity="0.07"/>
+  <rect y="560" width="1200" height="190" fill="#FFFFFF" fill-opacity="0.015"/>
+  <g stroke="#FFFFFF" stroke-opacity="0.035">
+    <path d="M0 612h1200M0 664h1200M0 716h1200"/>
+    <path d="M180 560v190M420 560v190M660 560v190M900 560v190"/>
+  </g>
+  <ellipse cx="600" cy="566" rx="430" ry="26" fill="#000000" opacity="0.55" filter="url(#soft-maruti-suzuki-baleno-2)"/>
+  <g>
+    <ellipse cx="600" cy="546" rx="410" ry="58" fill="#000000" fill-opacity="0.38" filter="url(#soft-maruti-suzuki-baleno-2)"/>
+
+    <rect x="268" y="474" width="84" height="84" rx="38" fill="#0B0E12"/>
+    <rect x="848" y="474" width="84" height="84" rx="38" fill="#0B0E12"/>
+
+    <path d="M278 560 Q264 436 288 412
+             Q302 298 358 288
+             L842 288
+             Q898 298 912 412
+             Q936 436 922 560 Z"
+          fill="url(#body-maruti-suzuki-baleno-2)" stroke="url(#body-maruti-suzuki-baleno-2)" stroke-width="24" stroke-linejoin="round"/>
+
+    <path d="M356 304 L408 434
+             L792 434 L844 304 Z"
+          fill="url(#glass-maruti-suzuki-baleno-2)" stroke="#8B241A" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M364 292 L836 292 L828 310
+             L372 310 Z" fill="#E4634F" fill-opacity="0.9"/>
+    <path d="M408 434 L792 434"
+          stroke="#000000" stroke-opacity="0.22" stroke-width="6"/>
+
+    <rect x="290" y="340" width="52" height="26" rx="12" fill="#8B241A"/>
+    <rect x="858" y="340" width="52" height="26" rx="12" fill="#8B241A"/>
+
+    <rect x="432" y="476" width="336" height="58" rx="18" fill="#0C1015" fill-opacity="0.95"/>
+    <g fill="#C9D2DC" fill-opacity="0.55">
+      <rect x="450" y="486" width="300" height="6" rx="3"/>
+      <rect x="450" y="502" width="300" height="6" rx="3"/>
+      <rect x="450" y="518" width="300" height="6" rx="3"/>
+    </g>
+
+    <ellipse cx="364" cy="482" rx="80" ry="40" fill="url(#glow-maruti-suzuki-baleno-2)"/>
+    <ellipse cx="836" cy="482" rx="80" ry="40" fill="url(#glow-maruti-suzuki-baleno-2)"/>
+    <path d="M310 462 L450 454 L450 506 L318 514 Z"
+          fill="#F4F8FC"/>
+    <path d="M890 462 L750 454 L750 506 L882 514 Z"
+          fill="#F4F8FC"/>
+    <path d="M318 496 L448 488 L448 506 L318 514 Z"
+          fill="#D7F24B" fill-opacity="0.8"/>
+    <path d="M882 496 L752 488 L752 506 L882 514 Z"
+          fill="#D7F24B" fill-opacity="0.8"/>
+
+    <rect x="496" y="562" width="208" height="40" rx="10" fill="#E9EEF4" fill-opacity="0.9"/>
+    <rect x="516" y="572" width="168" height="20" rx="6" fill="#0C1015" fill-opacity="0.75"/>
+
+    <circle cx="386" cy="568" r="26" fill="#0C1015" fill-opacity="0.85"/>
+    <circle cx="814" cy="568" r="26" fill="#0C1015" fill-opacity="0.85"/>
+    <circle cx="386" cy="568" r="12" fill="#F4F8FC" fill-opacity="0.75"/>
+    <circle cx="814" cy="568" r="12" fill="#F4F8FC" fill-opacity="0.75"/>
+
+    <path d="M286 430 Q250 414 236 396" stroke="#8B241A" stroke-width="15"
+          stroke-linecap="round" fill="none"/>
+    <path d="M914 430 Q950 414 964 396" stroke="#8B241A" stroke-width="15"
+          stroke-linecap="round" fill="none"/>
+    <path d="M294 478 L302 552 M906 478 L898 552"
+          stroke="#000000" stroke-opacity="0.26" stroke-width="6"/>
+    <path d="M472 628 h256" stroke="#D7F24B" stroke-opacity="0.75" stroke-width="6"
+          stroke-linecap="round"/>
+  </g>
+</svg>
