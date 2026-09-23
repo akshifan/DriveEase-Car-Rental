@@ -238,8 +238,12 @@ The repository is deployment-ready as documented.
 | `home.png` — cinematic hero with the 3D car | `fleet.png` — live availability search |
 | ![Vehicle detail](docs/screenshots/vehicle-detail.png) | ![Auth](docs/screenshots/login.png) |
 | `vehicle-detail.png` — gallery, specs, booking panel | `login.png` — the auth experience |
-| ![How it works](docs/screenshots/how-it-works.png) |  |
-| `how-it-works.png` — scroll-choreographed narrative section |  |
+| ![How it works](docs/screenshots/how-it-works.png) | ![Fleet console](docs/screenshots/fleet-console.png) |
+| `how-it-works.png` — scroll-choreographed narrative section | `fleet-console.png` — fleet manager overview |
+| ![Admin dashboard](docs/screenshots/admin-dashboard.png) | ![Customer dashboard](docs/screenshots/customer-dashboard.png) |
+| `admin-dashboard.png` — platform KPIs from live SQL aggregates | `customer-dashboard.png` — the customer home |
+| ![Admin reports](docs/screenshots/admin-reports.png) | ![Mobile home](docs/screenshots/mobile-home.png) |
+| `admin-reports.png` — revenue/utilisation analytics with CSV export | `mobile-home.png` — responsive hero with the 3D scene |
 
 ## Project layout
 

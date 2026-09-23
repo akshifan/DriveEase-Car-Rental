@@ -234,9 +234,10 @@ export default function HomePage() {
         </div>
 
         <div className="relative z-10 -mt-[100vh]">
-          {/* Panel 1 - the hero itself */}
-          <div className="shell flex h-screen items-center" ref={heroRef}>
-            <div className="max-w-[560px] pt-10">
+          {/* Panel 1 - the hero itself. min-h (not fixed h) so short viewports
+              never clip the top of the content under the fixed navbar. */}
+          <div className="shell flex min-h-screen items-center pb-16 pt-28 sm:pt-24" ref={heroRef}>
+            <div className="max-w-[560px] pt-0 sm:pt-10">
               <p className="eyebrow" data-hero-line>
                 Self-drive car rental · Karnataka
               </p>

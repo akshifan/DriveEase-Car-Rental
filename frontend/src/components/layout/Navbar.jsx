@@ -16,7 +16,7 @@ const PUBLIC_LINKS = [
   { to: '/support', label: 'Support' },
 ];
 
-export default function Navbar() {
+export default function Navbar({ className = '' }) {
   const { user, isAuthenticated, isStaff, isAdmin, logout } = useAuth();
   const scrolled = useScrollPosition(24);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -70,7 +70,7 @@ export default function Navbar() {
       </a>
 
       <header
-        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+        className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${className} ${
           scrolled
             ? 'border-b border-white/[0.06] bg-ink-950/85 backdrop-blur-xl'
             : 'border-b border-transparent bg-transparent'

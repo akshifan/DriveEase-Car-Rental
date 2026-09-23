@@ -31,8 +31,17 @@ export function AuthProvider({ children }) {
 
   const applySession = useCallback((payload) => {
     setAccessToken(payload?.accessToken || null);
-    setUser(payload?.user || null);
-    setStatus(payload?.user ? 'authenticated' : 'anonymous');
+    if (payload?.user) {
+      setUser(payload.user);
+      setStatus('authenticated');
+    } else if (!payload?.accessToken) {
+      // Nothing arrived at all - treat as signed out.
+      setUser(null);
+      setStatus('anonymous');
+    }
+    // Tokens-only payloads (POST /auth/refresh carries no profile) leave the
+    // user/status untouched: refreshSession() has already resolved the profile
+    // via GET /auth/session and clobbering it here would sign the user out.
   }, []);
 
   const clearSession = useCallback(() => {
@@ -45,21 +54,40 @@ export function AuthProvider({ children }) {
    * Called by the API client when an access token expired, and once on cold
    * start. The response carries a new access token only, so the profile comes
    * from GET /auth/session (skipped when we already hold it).
+   *
+   * Single-flight: the refresh cookie ROTATES on every call and the backend
+   * revokes a token family when a rotated token is replayed, so two concurrent
+   * refreshes (React StrictMode double-mounts this effect in dev, and a 401
+   * retry can collide with cold start) would revoke the session they are
+   * trying to restore. Concurrent callers share one in-flight promise.
    */
-  const refreshSession = useCallback(async () => {
-    const payload = await authApi.refreshSession();
-    setAccessToken(payload?.accessToken || null);
+  const refreshInFlight = useRef(null);
 
-    let profile = userRef.current;
-    if (!profile) {
-      profile = await authApi.currentSession();
+  const refreshSession = useCallback(() => {
+    if (refreshInFlight.current) {
+      return refreshInFlight.current;
     }
-    if (mounted.current) {
-      setUser(profile);
-      setStatus('authenticated');
-    }
-    return payload;
+    refreshInFlight.current = (async () => {
+      try {
+        const payload = await authApi.refreshSession();
+        setAccessToken(payload?.accessToken || null);
+
+        let profile = userRef.current;
+        if (!profile) {
+          profile = await authApi.currentSession();
+        }
+        if (mounted.current) {
+          setUser(profile);
+          setStatus('authenticated');
+        }
+        return payload;
+      } finally {
+        refreshInFlight.current = null;
+      }
+    })();
+    return refreshInFlight.current;
   }, []);
+
 
   useEffect(() => {
     configureAuthBridge({ refresh: refreshSession, onLost: clearSession });
@@ -67,13 +95,15 @@ export function AuthProvider({ children }) {
 
   /**
    * Cold start: an access token only lives in memory, so ask the API whether the
-   * refresh cookie still represents a valid session.
+   * refresh cookie still represents a valid session. Goes through the
+   * single-flight refreshSession so StrictMode's double-mounted effect (and any
+   * colliding 401 retry) performs exactly one rotating refresh call.
    */
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const payload = await authApi.refreshSession();
+        const payload = await refreshSession();
         if (!cancelled) applySession(payload);
       } catch {
         if (!cancelled) clearSession();

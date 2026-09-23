@@ -162,7 +162,8 @@ export function DashboardLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <Navbar />
+        {/* Offset the fixed navbar past the sidebar on large screens so the logos never collide. */}
+        <Navbar className="lg:left-[260px]" />
         <main id="main" className="flex-1 px-5 pb-20 pt-[92px] sm:px-8 lg:pt-[100px]">
           <div className="mx-auto w-full max-w-[1180px]">
             <Outlet />
