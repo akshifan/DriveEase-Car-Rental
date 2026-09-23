@@ -218,19 +218,9 @@ public class VehicleService {
 
     @Transactional(readOnly = true)
     public PageResponse<BookingResponse> availability(Long vehicleId, Pageable pageable) {
-        List<Booking> bookings = bookingRepository.findByVehicleIdWithVehicle(vehicleId);
-        List<BookingResponse> blocking = bookings.stream()
-                .filter(b -> b.getStatus().holdsVehicle() && !b.getReturnDate().isBefore(LocalDate.now()))
-                .sorted(Comparator.comparing(Booking::getPickupDate))
-                .map(b -> bookingMapper.toResponse(b, null, false))
-                .toList();
-        int size = pageable.getPageSize();
-        int from = Math.min(pageable.getPageNumber() * size, blocking.size());
-        int to = Math.min(from + size, blocking.size());
-        List<BookingResponse> slice = blocking.subList(from, to);
-        int totalPages = size == 0 ? 0 : (int) Math.ceil((double) blocking.size() / size);
-        return new PageResponse<>(slice, pageable.getPageNumber(), size, blocking.size(), totalPages,
-                pageable.getPageNumber() == 0, to >= blocking.size(), slice.isEmpty());
+        // Paged in PostgreSQL: only the requested slice of blocking bookings is fetched.
+        Page<Booking> page = bookingRepository.findBlockingBookings(vehicleId, LocalDate.now(), pageable);
+        return PageResponse.of(page, b -> bookingMapper.toResponse(b, null, false));
     }
 
     @Transactional(readOnly = true)
@@ -457,17 +447,26 @@ public class VehicleService {
     @Transactional(readOnly = true)
     public String exportFleetCsv() {
         List<Vehicle> vehicles = vehicleRepository.findAll(Sort.by("make", "model"));
+        Map<Long, Long> completedByVehicle = new HashMap<>();
+        for (Object[] row : bookingRepository.completedCountsByVehicle()) {
+            completedByVehicle.put((Long) row[0], ((Number) row[1]).longValue());
+        }
+        Map<Long, Double> averageByVehicle = new HashMap<>();
+        if (!vehicles.isEmpty()) {
+            for (Object[] row : reviewRepository.averageRatingsByVehicleIds(
+                    vehicles.stream().map(Vehicle::getId).toList())) {
+                averageByVehicle.put((Long) row[0], ((Number) row[1]).doubleValue());
+            }
+        }
         List<List<?>> rows = new ArrayList<>();
         for (Vehicle vehicle : vehicles) {
-            long completed = bookingRepository.findByVehicleIdWithVehicle(vehicle.getId()).stream()
-                    .filter(b -> b.getStatus() == BookingStatus.COMPLETED).count();
-            Double average = reviewRepository.averageRating(vehicle.getId());
+            Double average = averageByVehicle.get(vehicle.getId());
             rows.add(List.of(vehicle.getLicensePlate(), vehicle.displayName(), vehicle.getCategory(),
                     vehicle.getStatus(), vehicle.getLocation(), vehicle.getDailyRate(),
                     vehicle.getDepositAmount(), vehicle.getSeats(), vehicle.getFuelType(),
                     vehicle.getTransmission(),
                     vehicle.getMileage() == null ? "" : vehicle.getMileage(),
-                    completed,
+                    completedByVehicle.getOrDefault(vehicle.getId(), 0L),
                     average == null ? "" : VehicleMapper.round(average)));
         }
         return CsvWriter.write(List.of("License Plate", "Vehicle", "Category", "Status", "Location",

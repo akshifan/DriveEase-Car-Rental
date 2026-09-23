@@ -121,6 +121,7 @@ export const BOOKING_FLOW = ['PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED'];
  */
 export const REPORT_GROUPINGS = [
   { value: 'day', label: 'Daily' },
+  { value: 'week', label: 'Weekly' },
   { value: 'month', label: 'Monthly' },
   { value: 'category', label: 'By category' },
   { value: 'branch', label: 'By location' },

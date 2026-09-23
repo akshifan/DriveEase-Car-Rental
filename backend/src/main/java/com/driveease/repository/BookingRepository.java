@@ -64,6 +64,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
             """)
     List<Booking> findLiveBookings(@Param("today") LocalDate today);
 
+    /** Booked periods that hold the vehicle, oldest pickup first - DB-paged for the availability calendar. */
+    @Query("""
+            SELECT b FROM Booking b
+            WHERE b.vehicle.id = :vehicleId
+              AND b.status IN (com.driveease.entity.BookingStatus.PENDING,
+                               com.driveease.entity.BookingStatus.CONFIRMED,
+                               com.driveease.entity.BookingStatus.ACTIVE)
+              AND b.returnDate >= :today
+            ORDER BY b.pickupDate ASC
+            """)
+    Page<Booking> findBlockingBookings(@Param("vehicleId") Long vehicleId,
+                                       @Param("today") LocalDate today, Pageable pageable);
+
     /** Completed bookings per vehicle in one grouped query - batched for the fleet dashboard. */
     @Query("""
             SELECT b.vehicle.id, COUNT(b) FROM Booking b

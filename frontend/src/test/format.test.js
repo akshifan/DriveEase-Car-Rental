@@ -64,7 +64,6 @@ describe('shared constants', () => {
 
   it('only offers groupings the reports endpoint accepts', () => {
     const values = REPORT_GROUPINGS.map((entry) => entry.value);
-    expect(values).toEqual(['day', 'month', 'category', 'branch']);
-    expect(values).not.toContain('week');
+    expect(values).toEqual(['day', 'week', 'month', 'category', 'branch']);
   });
 });
