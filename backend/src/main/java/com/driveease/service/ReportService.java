@@ -5,6 +5,7 @@ import com.driveease.dto.report.UtilisationReportResponse;
 import com.driveease.entity.*;
 import com.driveease.exception.InvalidRequestException;
 import com.driveease.repository.*;
+import com.driveease.security.UserPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,7 +45,7 @@ public class ReportService {
         LocalDate end = to == null ? LocalDate.now() : to;
         if (end.isBefore(start)) {
             throw InvalidRequestException.unprocessable("INVALID_DATE_RANGE",
-                    "The end date must be on or after the start date.");
+                "The end date must be on or after the start date.");
         }
         String grouping = normaliseGroupBy(groupBy);
 
@@ -56,14 +57,14 @@ public class ReportService {
         BigDecimal net = gross.subtract(refunds);
 
         long paidBookings = bookingRepository.countByStatus(BookingStatus.COMPLETED)
-                + bookingRepository.countByStatus(BookingStatus.ACTIVE)
-                + bookingRepository.countByStatus(BookingStatus.CONFIRMED);
+            + bookingRepository.countByStatus(BookingStatus.ACTIVE)
+            + bookingRepository.countByStatus(BookingStatus.CONFIRMED);
         long cancelledBookings = bookingRepository.countByStatus(BookingStatus.CANCELLED);
         long pendingBookings = bookingRepository.countByStatus(BookingStatus.PENDING);
         long failedPayments = paymentRepository.countFailedBetween(fromTs, toTs);
 
         BigDecimal avgBookingValue = paidBookings == 0 ? BigDecimal.ZERO
-                : net.divide(BigDecimal.valueOf(paidBookings), 2, RoundingMode.HALF_UP);
+            : net.divide(BigDecimal.valueOf(paidBookings), 2, RoundingMode.HALF_UP);
 
         Map<String, BigDecimal> refundsByDay = new HashMap<>();
         for (Object[] row : paymentRepository.dailyRefunds(fromTs, toTs)) {
@@ -75,34 +76,34 @@ public class ReportService {
             for (Object[] row : paymentRepository.monthlyRevenue(fromTs, toTs)) {
                 String bucket = (String) row[0];
                 series.add(new RevenueReportResponse.RevenuePoint(bucket, monthLabel(bucket),
-                        toMoney(row[1]), ((Number) row[2]).longValue(), sumRefundsForMonth(refundsByDay, bucket)));
+                    toMoney(row[1]), ((Number) row[2]).longValue(), sumRefundsForMonth(refundsByDay, bucket)));
             }
         } else if ("week".equals(grouping)) {
             for (Object[] row : paymentRepository.weeklyRevenue(fromTs, toTs)) {
                 String bucket = (String) row[0];
                 series.add(new RevenueReportResponse.RevenuePoint(bucket, weekLabel(bucket),
-                        toMoney(row[1]), ((Number) row[2]).longValue(), sumRefundsForWeek(refundsByDay, bucket)));
+                    toMoney(row[1]), ((Number) row[2]).longValue(), sumRefundsForWeek(refundsByDay, bucket)));
             }
         } else if ("category".equals(grouping) || "branch".equals(grouping)) {
             // Categorical grouping: the series itself becomes the breakdown so charts plot the
             // requested dimension while byCategory / byBranch stay populated for tables.
             Map<String, BigDecimal> refundsByGroup =
-                    "category".equals(grouping) ? refundsByCategory(fromTs, toTs) : refundsByBranch(fromTs, toTs);
+                "category".equals(grouping) ? refundsByCategory(fromTs, toTs) : refundsByBranch(fromTs, toTs);
             List<Object[]> rows = "category".equals(grouping)
-                    ? paymentRepository.sumByCategory(fromTs, toTs)
-                    : paymentRepository.sumByBranch(fromTs, toTs);
+                ? paymentRepository.sumByCategory(fromTs, toTs)
+                : paymentRepository.sumByBranch(fromTs, toTs);
             for (Object[] row : rows) {
                 String bucket = "category".equals(grouping) ? ((Enum<?>) row[0]).name() : (String) row[0];
                 BigDecimal refunded = refundsByGroup.getOrDefault(bucket, BigDecimal.ZERO);
                 series.add(new RevenueReportResponse.RevenuePoint(bucket, humanise(bucket),
-                        toMoney(row[1]), ((Number) row[2]).longValue(), refunded));
+                    toMoney(row[1]), ((Number) row[2]).longValue(), refunded));
             }
         } else {
             for (Object[] row : paymentRepository.dailyRevenue(fromTs, toTs)) {
                 String bucket = (String) row[0];
                 series.add(new RevenueReportResponse.RevenuePoint(bucket, bucket,
-                        toMoney(row[1]), ((Number) row[2]).longValue(),
-                        refundsByDay.getOrDefault(bucket, BigDecimal.ZERO)));
+                    toMoney(row[1]), ((Number) row[2]).longValue(),
+                    refundsByDay.getOrDefault(bucket, BigDecimal.ZERO)));
             }
         }
 
@@ -111,7 +112,7 @@ public class ReportService {
             long count = ((Number) row[2]).longValue();
             BigDecimal revenue = toMoney(row[1]);
             byCategory.add(new RevenueReportResponse.RevenueGroup(((Enum<?>) row[0]).name(), revenue, count,
-                    count == 0 ? BigDecimal.ZERO : revenue.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP)));
+                count == 0 ? BigDecimal.ZERO : revenue.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP)));
         }
 
         List<RevenueReportResponse.RevenueGroup> byBranch = new ArrayList<>();
@@ -119,7 +120,7 @@ public class ReportService {
             long count = ((Number) row[2]).longValue();
             BigDecimal revenue = toMoney(row[1]);
             byBranch.add(new RevenueReportResponse.RevenueGroup((String) row[0], revenue, count,
-                    count == 0 ? BigDecimal.ZERO : revenue.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP)));
+                count == 0 ? BigDecimal.ZERO : revenue.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP)));
         }
 
         if (category != null && !category.isBlank()) {
@@ -133,21 +134,21 @@ public class ReportService {
         for (Object[] row : paymentRepository.monthlyRevenue(fromTs, toTs)) {
             String bucket = (String) row[0];
             byMonth.add(new RevenueReportResponse.RevenuePoint(bucket, monthLabel(bucket),
-                    toMoney(row[1]), ((Number) row[2]).longValue(), sumRefundsForMonth(refundsByDay, bucket)));
+                toMoney(row[1]), ((Number) row[2]).longValue(), sumRefundsForMonth(refundsByDay, bucket)));
         }
 
         RevenueReportResponse.Totals totals = new RevenueReportResponse.Totals(
-                gross, refunds, net, paidBookings, cancelledBookings, pendingBookings,
-                failedPayments, avgBookingValue, BigDecimal.ZERO);
+            gross, refunds, net, paidBookings, cancelledBookings, pendingBookings,
+            failedPayments, avgBookingValue, BigDecimal.ZERO);
 
         return new RevenueReportResponse(start, end, grouping, "INR", totals, series, byCategory, byBranch, byMonth);
     }
 
     private BigDecimal sumRefundsForMonth(Map<String, BigDecimal> refundsByDay, String month) {
         return refundsByDay.entrySet().stream()
-                .filter(entry -> entry.getKey().startsWith(month))
-                .map(Map.Entry::getValue)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            .filter(entry -> entry.getKey().startsWith(month))
+            .map(Map.Entry::getValue)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private String normaliseGroupBy(String groupBy) {
@@ -158,7 +159,7 @@ public class ReportService {
         return switch (value) {
             case "day", "week", "month", "category", "branch" -> value;
             default -> throw InvalidRequestException.unprocessable("INVALID_GROUP_BY",
-                    "groupBy must be one of: day, week, month, category, branch.");
+                "groupBy must be one of: day, week, month, category, branch.");
         };
     }
 
@@ -185,19 +186,19 @@ public class ReportService {
         LocalDate monday = LocalDate.parse(weekStart);
         LocalDate sunday = monday.plusDays(6);
         return refundsByDay.entrySet().stream()
-                .filter(entry -> {
-                    LocalDate date = LocalDate.parse(entry.getKey());
-                    return !date.isBefore(monday) && !date.isAfter(sunday);
-                })
-                .map(Map.Entry::getValue)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            .filter(entry -> {
+                LocalDate date = LocalDate.parse(entry.getKey());
+                return !date.isBefore(monday) && !date.isAfter(sunday);
+            })
+            .map(Map.Entry::getValue)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private String weekLabel(String bucket) {
         LocalDate monday = LocalDate.parse(bucket);
         LocalDate sunday = monday.plusDays(6);
         return "Week of " + monday.getDayOfMonth() + " " + monthLabel(bucket.substring(0, 7)).substring(0, 3)
-                + " - " + sunday.getDayOfMonth() + " " + monthLabel(sunday.toString().substring(0, 7)).substring(0, 3);
+            + " - " + sunday.getDayOfMonth() + " " + monthLabel(sunday.toString().substring(0, 7)).substring(0, 3);
     }
 
     /** Renders enum-style or lower-case keys as a human label ("ECONOMY" -> "Economy"). */
@@ -232,12 +233,12 @@ public class ReportService {
      * boundary is only counted inside the window.
      */
     @Transactional(readOnly = true)
-    public UtilisationReportResponse utilisation(LocalDate from, LocalDate to) {
+    public UtilisationReportResponse utilisation(LocalDate from, LocalDate to, UserPrincipal principal) {
         LocalDate start = from == null ? LocalDate.now().withDayOfMonth(1) : from;
         LocalDate end = to == null ? LocalDate.now() : to;
         if (end.isBefore(start)) {
             throw InvalidRequestException.unprocessable("INVALID_DATE_RANGE",
-                    "The end date must be on or after the start date.");
+                "The end date must be on or after the start date.");
         }
         int periodDays = (int) ChronoUnit.DAYS.between(start, end) + 1;
 
@@ -277,30 +278,70 @@ public class ReportService {
             fleetRented += rented;
             fleetAvailable += periodDays;
             BigDecimal percent = periodDays == 0 ? BigDecimal.ZERO
-                    : BigDecimal.valueOf(rented * 100.0 / periodDays).setScale(1, RoundingMode.HALF_UP);
+                : BigDecimal.valueOf(rented * 100.0 / periodDays).setScale(1, RoundingMode.HALF_UP);
             rows.add(new UtilisationReportResponse.VehicleUtilisation(
-                    vehicle.getId(), vehicle.displayName(), vehicle.getLicensePlate(),
-                    vehicle.getCategory().name(), vehicle.getLocation(), rented, available,
-                    bookingCounts.getOrDefault(vehicle.getId(), 0L), percent,
-                    revenue.getOrDefault(vehicle.getId(), BigDecimal.ZERO), vehicle.getStatus().name()));
+                vehicle.getId(), vehicle.displayName(), vehicle.getLicensePlate(),
+                vehicle.getCategory().name(), vehicle.getLocation(), rented, available,
+                bookingCounts.getOrDefault(vehicle.getId(), 0L), percent,
+                revenue.getOrDefault(vehicle.getId(), BigDecimal.ZERO), vehicle.getStatus().name()));
         }
         rows.sort(Comparator.comparing(UtilisationReportResponse.VehicleUtilisation::utilisationPercent).reversed());
 
         BigDecimal fleetPercent = fleetAvailable == 0 ? BigDecimal.ZERO
-                : BigDecimal.valueOf(fleetRented * 100.0 / fleetAvailable).setScale(1, RoundingMode.HALF_UP);
+            : BigDecimal.valueOf(fleetRented * 100.0 / fleetAvailable).setScale(1, RoundingMode.HALF_UP);
 
         return new UtilisationReportResponse(start, end, periodDays, fleetPercent, fleetRented, fleetAvailable, rows);
     }
 
+    /**
+     * Utilisation scoped to a single fleet owner's vehicles.
+     *
+     * <p>Returns a well-formed empty response when the owner has no vehicles,
+     * so the fleet dashboard never has to null-check.</p>
+     */
+    @Transactional(readOnly = true)
+    public UtilisationReportResponse utilisationForOwner(Long ownerId) {
+        LocalDate from = LocalDate.now().minusDays(29);
+        LocalDate to = LocalDate.now();
+
+        // Which vehicles does this owner actually have?
+        Set<Long> ownedVehicleIds = new HashSet<>();
+        for (Vehicle vehicle : vehicleRepository.findByOwnerId(
+            ownerId, org.springframework.data.domain.Pageable.unpaged()).getContent()) {
+            ownedVehicleIds.add(vehicle.getId());
+        }
+
+        if (ownedVehicleIds.isEmpty()) {
+            return new UtilisationReportResponse(
+                from, to, 30, BigDecimal.ZERO, 0L, 0L, List.of());
+        }
+
+        UtilisationReportResponse full = utilisation(from, to, null);
+        List<UtilisationReportResponse.VehicleUtilisation> filtered = full.vehicles().stream()
+            .filter(v -> ownedVehicleIds.contains(v.vehicleId()))
+            .toList();
+
+        long rented = filtered.stream()
+            .mapToLong(UtilisationReportResponse.VehicleUtilisation::rentedDays).sum();
+        long available = filtered.stream()
+            .mapToLong(UtilisationReportResponse.VehicleUtilisation::availableDays).sum();
+
+        BigDecimal percent = available == 0 ? BigDecimal.ZERO
+            : BigDecimal.valueOf(rented * 100.0 / available).setScale(1, RoundingMode.HALF_UP);
+
+        return new UtilisationReportResponse(
+            from, to, full.periodDays(), percent, rented, available, filtered);
+    }
+
     @Transactional(readOnly = true)
     public String exportUtilisationCsv(LocalDate from, LocalDate to) {
-        UtilisationReportResponse report = utilisation(from, to);
+        UtilisationReportResponse report = utilisation(from, to, null);
         List<List<?>> rows = new ArrayList<>();
         report.vehicles().forEach(row -> rows.add(List.of(
-                row.licensePlate(), row.vehicleName(), row.category(), row.location(), row.status(),
-                row.rentedDays(), row.availableDays(), row.utilisationPercent(), row.bookingCount(), row.revenue())));
+            row.licensePlate(), row.vehicleName(), row.category(), row.location(), row.status(),
+            row.rentedDays(), row.availableDays(), row.utilisationPercent(), row.bookingCount(), row.revenue())));
         return com.driveease.util.CsvWriter.write(List.of("License Plate", "Vehicle", "Category", "Location",
-                "Status", "Rented Days", "Available Days", "Utilisation %", "Bookings", "Revenue"), rows);
+            "Status", "Rented Days", "Available Days", "Utilisation %", "Bookings", "Revenue"), rows);
     }
 
     @Transactional(readOnly = true)
@@ -308,7 +349,7 @@ public class ReportService {
         RevenueReportResponse report = revenue(from, to, groupBy, category, branch);
         List<List<?>> rows = new ArrayList<>();
         report.series().forEach(point -> rows.add(List.of(
-                point.key(), point.label(), point.revenue(), point.bookings(), point.refunds())));
+            point.key(), point.label(), point.revenue(), point.bookings(), point.refunds())));
         return com.driveease.util.CsvWriter.write(List.of("Bucket", "Label", "Revenue", "Bookings", "Refunds"), rows);
     }
 

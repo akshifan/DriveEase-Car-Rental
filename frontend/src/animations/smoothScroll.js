@@ -39,6 +39,7 @@ export function initSmoothScroll() {
     wheelMultiplier: 1,
     lerp: 0.11,
     autoRaf: false,
+    prevent: (node) => node.closest('[role="dialog"]') !== null,
   });
 
   tickerCallback = (time) => lenis?.raf(time * 1000);

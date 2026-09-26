@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '../../components/ui/Icon.jsx';
 import {
@@ -21,6 +21,7 @@ import {
   listFleetInventory,
   retireVehicle,
   updateVehicle,
+  uploadVehicleImage,
 } from '../../api/vehicles.js';
 import { useDebouncedValue } from '../../hooks/index.js';
 import { useToast } from '../../context/ToastContext.jsx';
@@ -36,6 +37,9 @@ import {
   VEHICLE_STATUS,
   VEHICLE_STATUS_LABELS,
 } from '../../utils/constants.js';
+
+/** Hard cap on images per vehicle (mirrors the backend @Size(max = 15)). */
+const MAX_GALLERY = 15;
 
 const EMPTY_FORM = {
   make: '',
@@ -58,11 +62,12 @@ const EMPTY_FORM = {
   features: '',
 };
 
+/** Normalises a vehicle response into the form shape. */
 function toForm(vehicle) {
   return {
     make: vehicle.make || '',
     model: vehicle.model || '',
-    year: vehicle.year || new Date().getFullYear(),
+    year: vehicle.year ?? new Date().getFullYear(),
     category: vehicle.category || 'COMPACT',
     licensePlate: vehicle.licensePlate || '',
     vin: vehicle.vin || '',
@@ -75,13 +80,13 @@ function toForm(vehicle) {
     fuelType: vehicle.fuelType || 'PETROL',
     transmission: vehicle.transmission || 'AUTOMATIC',
     imageUrl: vehicle.imageUrl || '',
-    galleryUrls: '',
+    galleryUrls: (vehicle.gallery || []).map((g) => g.url).join(', '),
     description: vehicle.description || '',
     features: (vehicle.features || []).join(', '),
   };
 }
 
-/** Splits "A, B, C" into a clean list, dropping blanks. */
+/** "A, B, C" → ["A","B","C"], dropping blanks. */
 function toList(value) {
   return String(value || '')
     .split(',')
@@ -100,20 +105,32 @@ export default function FleetVehicles() {
 
   const debouncedSearch = useDebouncedValue(search, 400);
 
-  const [editor, setEditor] = useState(null); // { mode: 'create' | 'edit', vehicle }
+  const [editor, setEditor] = useState(null); // { mode: 'create' | 'edit', vehicle? }
   const [form, setForm] = useState(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
+
+  // image upload state
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadedUrls, setUploadedUrls] = useState([]);
 
   const [statusTarget, setStatusTarget] = useState(null);
   const [statusForm, setStatusForm] = useState({ status: '', reason: '' });
   const [retireTarget, setRetireTarget] = useState(null);
   const [retireReason, setRetireReason] = useState('');
 
+  /* ------------------------------------------------------------ data load */
+
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    listFleetInventory({ search: debouncedSearch || undefined, location: location || undefined, page, size: 12 })
+    listFleetInventory({
+      search: debouncedSearch || undefined,
+      location: location || undefined,
+      page,
+      size: 12,
+    })
       .then(setResult)
       .catch((failure) =>
         setError(failure instanceof ApiError ? failure : new ApiError({ message: failure.message })),
@@ -128,17 +145,93 @@ export default function FleetVehicles() {
     return Array.from(values).sort();
   }, [result]);
 
+  /* ---------------------------------------------------- open create / edit */
+
   const openCreate = () => {
     setEditor({ mode: 'create' });
     setForm(EMPTY_FORM);
     setFieldErrors({});
+    setUploadedUrls([]);
   };
 
   const openEdit = (vehicle) => {
     setEditor({ mode: 'edit', vehicle });
     setForm(toForm(vehicle));
     setFieldErrors({});
+    setUploadedUrls((vehicle.gallery || []).map((g) => g.url));
   };
+
+  const closeEditor = () => {
+    setEditor(null);
+    setUploadedUrls([]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  /* ---------------------------------------------------------- image upload */
+
+  const onFilePicked = async (event) => {
+    const picked = Array.from(event.target.files || []);
+    if (!picked.length) return;
+
+    const room = MAX_GALLERY - uploadedUrls.length;
+    if (room <= 0) {
+      toast.warn('Image limit reached',
+        `A vehicle can have at most ${MAX_GALLERY} images. Remove one to add another.`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    const files = picked.slice(0, room);
+    if (files.length < picked.length) {
+      toast.warn('Only some files were added',
+        `The vehicle can hold ${MAX_GALLERY} images total. Added ${files.length} of ${picked.length}.`);
+    }
+
+    setUploading(true);
+    try {
+      const uploaded = [];
+      for (const file of files) {
+        try {
+          const result = await uploadVehicleImage(file);
+          uploaded.push(result.url);
+        } catch (failure) {
+          const apiError = failure instanceof ApiError ? failure : new ApiError({ message: failure.message });
+          toast.error(`Couldn't upload ${file.name}`, apiError.message);
+        }
+      }
+
+      if (uploaded.length) {
+        setUploadedUrls((prev) => [...prev, ...uploaded]);
+        setForm((prev) => {
+          const existing = prev.galleryUrls ? toList(prev.galleryUrls) : [];
+          const merged = [...existing, ...uploaded].slice(0, MAX_GALLERY);
+          return {
+            ...prev,
+            imageUrl: prev.imageUrl || merged[0],
+            galleryUrls: merged.join(', '),
+          };
+        });
+        toast.success('Images uploaded', `${uploaded.length} file(s) added.`);
+      }
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeUploadedImage = (url) => {
+    setUploadedUrls((prev) => prev.filter((u) => u !== url));
+    setForm((prev) => {
+      const remaining = toList(prev.galleryUrls).filter((u) => u !== url);
+      return {
+        ...prev,
+        galleryUrls: remaining.join(', '),
+        imageUrl: prev.imageUrl === url ? (remaining[0] || '') : prev.imageUrl,
+      };
+    });
+  };
+
+  /* ---------------------------------------------------------------- save */
 
   const save = async (event) => {
     event.preventDefault();
@@ -174,7 +267,7 @@ export default function FleetVehicles() {
         await updateVehicle(editor.vehicle.id, payload);
         toast.success('Vehicle updated', 'The changes are live in the catalogue.');
       }
-      setEditor(null);
+      closeEditor();
       load();
     } catch (failure) {
       const apiError = failure instanceof ApiError ? failure : new ApiError({ message: failure.message });
@@ -187,6 +280,8 @@ export default function FleetVehicles() {
       setSaving(false);
     }
   };
+
+  /* ------------------------------------------------------- status change */
 
   const saveStatus = async (event) => {
     event.preventDefault();
@@ -238,9 +333,11 @@ export default function FleetVehicles() {
     }
   };
 
+  /* -------------------------------------------------------------- render */
+
   return (
     <div className="space-y-7">
-      <header className="flex flex-wrap items-end justify-between gap-5">
+      <header className="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div>
           <p className="eyebrow">Inventory</p>
           <h1 className="display-md mt-3">Fleet vehicles</h1>
@@ -249,18 +346,22 @@ export default function FleetVehicles() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button variant="ghost" icon="download" onClick={downloadCsv}>
+          <Button
+            variant="ghost"
+            icon="download"
+            onClick={downloadCsv}
+            className="flex-1 sm:flex-none"
+          >
             Export CSV
           </Button>
-          <Button icon="plus" onClick={openCreate}>
+          <Button icon="plus" onClick={openCreate} className="flex-1 sm:flex-none">
             Add vehicle
           </Button>
         </div>
       </header>
 
-      <div className="surface flex flex-wrap items-end gap-4 p-5">
+      <div className="surface grid gap-4 p-5 sm:grid-cols-2">
         <Input
-          className="min-w-[220px] flex-1"
           label="Search"
           placeholder="Make, model or registration"
           prefixIcon="search"
@@ -271,7 +372,6 @@ export default function FleetVehicles() {
           }}
         />
         <Select
-          className="w-[200px]"
           label="Location"
           placeholder="All locations"
           value={location}
@@ -281,9 +381,6 @@ export default function FleetVehicles() {
           }}
           options={locations.map((entry) => ({ value: entry, label: entry }))}
         />
-        <p className="ml-auto pb-2 text-[12.5px] text-mist-400">
-          {loading ? 'Loading…' : `${result?.totalElements || 0} vehicles`}
-        </p>
       </div>
 
       {error ? (
@@ -398,12 +495,22 @@ export default function FleetVehicles() {
       {/* Create / edit */}
       <Modal
         open={Boolean(editor)}
-        onClose={() => setEditor(null)}
+        onClose={closeEditor}
         size="xl"
         title={editor?.mode === 'create' ? 'Add a vehicle' : `Edit ${editor?.vehicle?.displayName || ''}`}
-        description="Only the fields you change are sent to the API, and pricing is validated server-side."
+        description="Pricing is validated server-side; images are uploaded straight from your computer."
+        footer={
+          <>
+            <Button variant="quiet" onClick={closeEditor} type="button">
+              Cancel
+            </Button>
+            <Button type="submit" form="fleet-vehicle-editor-form" loading={saving}>
+              {editor?.mode === 'create' ? 'Add to fleet' : 'Save changes'}
+            </Button>
+          </>
+        }
       >
-        <form onSubmit={save} className="space-y-5">
+        <form id="fleet-vehicle-editor-form" onSubmit={save} className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-3">
             <Input
               label="Make"
@@ -530,29 +637,62 @@ export default function FleetVehicles() {
             onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
           />
 
-          <Field label="Primary image URL" htmlFor="imageUrl">
+          {/* ------------------------------------------- image upload */}
+          <Field
+            label={`Vehicle images — optional (${uploadedUrls.length}/${MAX_GALLERY})`}
+            hint={
+              uploadedUrls.length >= MAX_GALLERY
+                ? `Limit reached. Remove an image to add another (max ${MAX_GALLERY}).`
+                : `JPEG, PNG or WebP · max 5 MB each · at most ${MAX_GALLERY} images. Add as many or as few as you like — you can always add more later.`
+            }
+          >
             <input
-              id="imageUrl"
-              className="input"
-              placeholder="/images/vehicles/toyota-camry-hybrid-1.svg"
-              value={form.imageUrl}
-              onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
+              id="fleet-vehicle-images"
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              onChange={onFilePicked}
+              disabled={uploading || uploadedUrls.length >= MAX_GALLERY}
+              className="input cursor-pointer file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-lime file:px-4 file:py-1.5 file:text-[12.5px] file:font-medium file:text-ink-950 hover:file:bg-lime-soft disabled:cursor-not-allowed disabled:opacity-60"
             />
           </Field>
 
-          <Field
-            label="Gallery URLs"
-            htmlFor="galleryUrls"
-            hint="Comma separated. The first image is shown on catalogue cards."
-          >
-            <input
-              id="galleryUrls"
-              className="input"
-              value={form.galleryUrls}
-              placeholder="/images/vehicles/car-1.svg, /images/vehicles/car-2.svg"
-              onChange={(event) => setForm((current) => ({ ...current, galleryUrls: event.target.value }))}
-            />
-          </Field>
+          {uploading && <p className="meta">Uploading…</p>}
+
+          {uploadedUrls.length > 0 && (
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+              {uploadedUrls.map((url, index) => (
+                <div
+                  key={url}
+                  className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-white/[0.07] bg-ink-850"
+                >
+                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  {index === 0 && (
+                    <span className="absolute left-2 top-2 badge border-lime/40 bg-lime/10 text-lime">
+                      Cover
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeUploadedImage(url)}
+                    className="absolute right-2 top-2 rounded-full bg-ink-950/80 p-1 text-mist-200 transition hover:text-signal-danger"
+                    aria-label="Remove image"
+                  >
+                    <Icon name="x" size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Fallback: paste a URL directly */}
+          <Input
+            label="Or paste an image URL"
+            value={form.imageUrl}
+            hint="Optional. Filled automatically when you upload the first file."
+            onChange={(event) => setForm((current) => ({ ...current, imageUrl: event.target.value }))}
+          />
 
           <Textarea
             label="Description"
@@ -562,24 +702,15 @@ export default function FleetVehicles() {
             placeholder="How the car drives, who it suits, what makes it worth the rate."
           />
 
-          <Field label="Features" htmlFor="features" hint="Comma separated, shown as pills on the detail page.">
+          <Field label="Features" htmlFor="fleet-features" hint="Comma separated, shown as pills on the detail page.">
             <input
-              id="features"
+              id="fleet-features"
               className="input"
               value={form.features}
               placeholder="Sunroof, Apple CarPlay, 360 Camera"
               onChange={(event) => setForm((current) => ({ ...current, features: event.target.value }))}
             />
           </Field>
-
-          <div className="flex justify-end gap-3">
-            <Button variant="quiet" onClick={() => setEditor(null)}>
-              Cancel
-            </Button>
-            <Button type="submit" loading={saving}>
-              {editor?.mode === 'create' ? 'Add to fleet' : 'Save changes'}
-            </Button>
-          </div>
         </form>
       </Modal>
 
@@ -629,9 +760,9 @@ export default function FleetVehicles() {
         confirmLabel="Retire vehicle"
         loading={saving}
       >
-        <Field label="Reason" htmlFor="retire-reason" required>
+        <Field label="Reason" htmlFor="fleet-retire-reason" required>
           <input
-            id="retire-reason"
+            id="fleet-retire-reason"
             className="input"
             value={retireReason}
             onChange={(event) => setRetireReason(event.target.value)}

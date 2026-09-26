@@ -44,21 +44,35 @@ export default function Footer() {
               pricing, verified vehicles and a booking engine that tells you the truth about
               availability.
             </p>
-            <div className="mt-6 flex items-center gap-3">
+            <div className="min-w-max mt-8 flex flex-col items-start gap-[7px] ">
+  <span className=" text-xs tracking-[0.18em] text-mist-400">
+    Developed by{" "}
+    <strong className="block text-sm  font-medium mt-1 text-mist-300">
+      Abdul Khader Shifan
+    </strong>
+  </span>
+
               <a
-                href="mailto:hello@driveease.app"
-                className="icon-btn"
-                aria-label="Email DriveEase"
+                href="mailto:akshifan@driveease.app"
+                className="inline-flex text-sm font-medium items-center gap-[2px] text-mist-400 no-underline mt-4"
               >
-                <Icon name="mail" size={16} />
+                <Icon name="mail" size={17} />
+                <span>akshifan@driveease.app</span>
               </a>
-              <a href="tel:+918200012345" className="icon-btn" aria-label="Call DriveEase">
-                <Icon name="phone" size={16} />
+
+              <a
+                href="tel:+918073103243"
+                className="inline-flex items-center mt-1 text-sm font-medium text-mist-400 no-underline"
+              >
+                <Icon name="phone" size={17} />
+                <span>+91 80731 03243</span>
               </a>
-              <span className="meta ml-1">Mon–Sun · 7am – 11pm IST</span>
+
+              <span className="meta whitespace-nowrap text-[11px] mt-1 text-mist-400">
+    Mon–Sun · 7am – 11pm IST
+  </span>
             </div>
           </div>
-
           {COLUMNS.map((column) => (
             <nav key={column.title} aria-label={column.title}>
               <h2 className="font-display text-[13px] uppercase tracking-[0.16em] text-mist-300">

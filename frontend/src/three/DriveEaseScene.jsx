@@ -8,7 +8,7 @@ import CarCamera from './CarCamera.jsx';
 import CarLighting from './CarLighting.jsx';
 import CarScrollController, { registerStageTracking, sceneState } from './CarScrollController.jsx';
 import WebGLFallback from './WebGLFallback.jsx';
-
+import { MeshReflectorMaterial } from '@react-three/drei';
 /**
  * The homepage 3D stage.
  *
@@ -185,6 +185,31 @@ export default function DriveEaseScene({ className = '', ariaLabel = 'Interactiv
         role="img"
       >
         <Suspense fallback={null}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
+            <planeGeometry args={[60, 60]} />
+            <MeshReflectorMaterial
+              blur={[300, 60]}
+              resolution={1024}
+              mixBlur={1}
+              mixStrength={40}
+              roughness={1}
+              depthScale={1.2}
+              minDepthThreshold={0.4}
+              maxDepthThreshold={1.4}
+              color="#0A0B0D"
+              metalness={0.6}
+              mirror={0.6}
+            />
+            <ContactShadows
+              position={[0, 0.01, 0]}
+              opacity={0.5}
+              scale={14}
+              blur={2.8}
+              far={4}
+              resolution={quality === 'high' ? 1024 : 512}
+              color="#000000"
+            />
+          </mesh>
           <StudioEnvironment />
           <CarLighting quality={quality} />
           <ModelBoundary fallback={<ProceduralCar modelRef={carRef} />}>

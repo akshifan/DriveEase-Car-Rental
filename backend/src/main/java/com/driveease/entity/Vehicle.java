@@ -83,6 +83,10 @@ public class Vehicle extends BaseEntity {
     @Column(name = "retired_at")
     private LocalDateTime retiredAt;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
+
     @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("displayOrder ASC, id ASC")
     private List<VehicleImage> images = new ArrayList<>();
@@ -96,8 +100,8 @@ public class Vehicle extends BaseEntity {
             return List.of();
         }
         return Arrays.stream(features.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toList();
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .toList();
     }
 }

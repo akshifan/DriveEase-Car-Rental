@@ -10,8 +10,10 @@ import {
 } from '../../components/ui/primitives.jsx';
 import { listNotifications, markNotificationsRead } from '../../api/auth.js';
 import { useToast } from '../../context/ToastContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { ApiError } from '../../api/client.js';
 import { formatDateTime } from '../../utils/format.js';
+import { ROLES } from '../../utils/constants.js';
 
 const TYPE_ICONS = {
   BOOKING_CREATED: 'calendar',
@@ -28,6 +30,26 @@ const TYPE_ICONS = {
   ACCOUNT_STATUS: 'user',
 };
 
+/**
+ * Translate a notification link into a route the current role can actually
+ * open. The backend emits one link per notification, tuned for the customer
+ * experience (e.g. /bookings/42). A FLEET_MANAGER cannot open customer-portal
+ * routes, so those links are rewritten to the fleet-console equivalents.
+ * An ADMIN has access to all three portals, so the original link is used.
+ */
+function resolveNotificationHref(link, role) {
+  if (!link) return null;
+  if (role !== ROLES.FLEET_MANAGER) return link;
+
+  if (link === '/bookings' || link.startsWith('/bookings/')) {
+    return '/console/bookings';
+  }
+  if (link === '/payments' || link.startsWith('/payments/')) {
+    return '/console/payments';
+  }
+  return link;
+}
+
 export default function NotificationsPage() {
   const [page, setPage] = useState(0);
   const [result, setResult] = useState(null);
@@ -35,6 +57,7 @@ export default function NotificationsPage() {
   const [error, setError] = useState(null);
   const [marking, setMarking] = useState(false);
   const toast = useToast();
+  const { user } = useAuth();
 
   const load = useCallback(() => {
     setLoading(true);
@@ -110,44 +133,49 @@ export default function NotificationsPage() {
       ) : (
         <>
           <ul className="space-y-2.5">
-            {result.content.map((item) => (
-              <li
-                key={item.id}
-                className={`surface flex items-start gap-4 p-5 ${
-                  item.read ? '' : 'border-lime/25 bg-lime/[0.03]'
-                }`}
-              >
-                <span
-                  className={`mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
-                    item.read
-                      ? 'border-white/10 bg-white/[0.04] text-mist-300'
-                      : 'border-lime/30 bg-lime/[0.1] text-lime'
+            {result.content.map((item) => {
+              const href = resolveNotificationHref(item.link, user?.role);
+              return (
+                <li
+                  key={item.id}
+                  className={`surface flex items-start gap-4 p-5 ${
+                    item.read ? '' : 'border-lime/25 bg-lime/[0.03]'
                   }`}
                 >
-                  <Icon name={TYPE_ICONS[item.type] || 'bell'} size={18} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <p className="text-[14px] font-medium text-white">{item.title}</p>
-                    {!item.read && (
-                      <span className="badge border-lime/30 bg-lime/[0.08] text-lime">New</span>
-                    )}
-                  </div>
-                  <p className="mt-1.5 text-[13.5px] leading-relaxed text-mist-300">{item.message}</p>
-                  <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-mist-500">
-                    {formatDateTime(item.createdAt)}
-                  </p>
-                </div>
-                {item.link && (
-                  <Link
-                    to={item.link}
-                    className="shrink-0 self-center text-[13px] text-lime hover:text-lime-soft"
+                  <span
+                    className={`mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
+                      item.read
+                        ? 'border-white/10 bg-white/[0.04] text-mist-300'
+                        : 'border-lime/30 bg-lime/[0.1] text-lime'
+                    }`}
                   >
-                    Open
-                  </Link>
-                )}
-              </li>
-            ))}
+                    <Icon name={TYPE_ICONS[item.type] || 'bell'} size={18} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <p className="text-[14px] font-medium text-white">{item.title}</p>
+                      {!item.read && (
+                        <span className="badge border-lime/30 bg-lime/[0.08] text-lime">New</span>
+                      )}
+                    </div>
+                    <p className="mt-1.5 text-[13.5px] leading-relaxed text-mist-300">
+                      {item.message}
+                    </p>
+                    <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-mist-500">
+                      {formatDateTime(item.createdAt)}
+                    </p>
+                  </div>
+                  {href && (
+                    <Link
+                      to={href}
+                      className="shrink-0 self-center text-[13px] text-lime hover:text-lime-soft"
+                    >
+                      Open
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
           <Pagination

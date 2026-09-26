@@ -34,6 +34,29 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
 
     boolean existsByTransactionRef(String transactionRef);
 
+    // ── Fleet-scoped payments (money collected for this fleet's vehicles) ─
+    @EntityGraph(attributePaths = {"booking", "booking.vehicle", "user"})
+    @Query("""
+            SELECT p FROM Payment p
+            WHERE p.booking.ownerFleet.id = :ownerId
+            ORDER BY p.createdAt DESC
+            """)
+    Page<Payment> findByFleetOwnerIdOrderByCreatedAtDesc(@Param("ownerId") Long ownerId, Pageable pageable);
+
+    @Query("""
+            SELECT COALESCE(SUM(p.amount), 0) FROM Payment p
+            WHERE p.booking.ownerFleet.id = :ownerId
+              AND p.status IN ('SUCCESS', 'REFUNDED')
+            """)
+    BigDecimal sumCollectedForOwner(@Param("ownerId") Long ownerId);
+
+    @Query("""
+            SELECT COALESCE(SUM(r.amount), 0) FROM Refund r
+            WHERE r.booking.ownerFleet.id = :ownerId
+              AND r.status = 'SUCCESS'
+            """)
+    BigDecimal sumRefundedForOwner(@Param("ownerId") Long ownerId);
+
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status IN ('SUCCESS', 'REFUNDED') AND p.paidAt >= :from AND p.paidAt < :to")
     BigDecimal sumCollected(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
@@ -60,7 +83,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
     @Query("SELECT COUNT(p) FROM Payment p WHERE p.status = 'FAILED' AND p.createdAt >= :from AND p.createdAt < :to")
     long countFailedBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    /** Daily revenue series for reporting - aggregated by PostgreSQL. */
     @Query(value = """
             SELECT to_char(paid_at, 'YYYY-MM-DD') AS bucket, SUM(amount) AS revenue, COUNT(*) AS payments
             FROM payments
@@ -77,7 +99,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
             """, nativeQuery = true)
     List<Object[]> monthlyRevenue(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    /** Weekly revenue series - bucketed by the ISO week start (Monday) computed in PostgreSQL. */
     @Query(value = """
             SELECT to_char(date_trunc('week', paid_at), 'YYYY-MM-DD') AS bucket,
                    SUM(amount) AS revenue, COUNT(*) AS payments

@@ -29,7 +29,6 @@ export function cancelBooking(id, reason) {
   return api.post(`/bookings/${id}/cancel`, { reason });
 }
 
-/** Fleet-manager workflow: CONFIRMED -> ACTIVE (pickup) and ACTIVE -> COMPLETED (return). */
 export function updateBookingStatus(id, { status, mileage, note }) {
   return api.patch(`/bookings/${id}/status`, { status, mileage, note });
 }
@@ -37,6 +36,24 @@ export function updateBookingStatus(id, { status, mileage, note }) {
 export function searchAllBookings(filters = {}) {
   const { page = 0, size = 12, sort = 'createdAt,desc', ...rest } = filters;
   return api.get('/bookings/admin/all', { params: { page, size, sort, ...rest } });
+}
+
+/* ---------- fleet ---------- */
+
+/**
+ * Refunds part (or all) of a customer's deposit for a completed booking.
+ * Only the owning fleet (or an admin) can call this.
+ */
+export function fleetRefundDeposit(bookingId, { amount, reason }) {
+  return api.post(`/fleet/bookings/${bookingId}/refund-deposit`, { amount, reason });
+}
+
+export function listFleetPayments({ page = 0, size = 12, sort = 'createdAt,desc' } = {}) {
+  return api.get('/fleet/payments', { params: { page, size, sort } });
+}
+
+export function fleetPaymentsSummary() {
+  return api.get('/fleet/payments/summary');
 }
 
 /* ---------- payments ---------- */
@@ -90,7 +107,6 @@ export function getReviewForBooking(bookingId) {
 }
 
 export function moderateReview(id, reason) {
-  // The moderation reason travels in the body: it is stored on the audit trail.
   return api.delete(`/reviews/${id}`, { body: { reason } });
 }
 

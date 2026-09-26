@@ -4,23 +4,24 @@ import { EmptyState, Skeleton } from './primitives.jsx';
 /**
  * Table primitive for the staff workspaces.
  *
- * Tables scroll horizontally rather than collapsing into cards, because
- * operators compare columns - and the skeleton keeps the layout from jumping
- * while the first page of data is in flight.
+ * Tables scroll horizontally inside their own shell rather than stretching the
+ * page — the shell caps its width at 100% of its parent, the inner scroll
+ * container owns overflow-x, and the table keeps a min-width so it has an
+ * intrinsic size to scroll.
  */
 export default function DataTable({
-  columns,
-  rows,
-  loading = false,
-  error = null,
-  emptyTitle = 'Nothing to show yet',
-  emptyDescription,
-  emptyAction,
-  rowKey = (row, index) => row.id ?? index,
-  onRowClick,
-  initialSkeletonRows = 5,
-  className = '',
-}) {
+                                    columns,
+                                    rows,
+                                    loading = false,
+                                    error = null,
+                                    emptyTitle = 'Nothing to show yet',
+                                    emptyDescription,
+                                    emptyAction,
+                                    rowKey = (row, index) => row.id ?? index,
+                                    onRowClick,
+                                    initialSkeletonRows = 5,
+                                    className = '',
+                                  }) {
   if (error) {
     return (
       <div className="surface px-6 py-12 text-center">
@@ -31,7 +32,7 @@ export default function DataTable({
 
   if (loading) {
     return (
-      <div className="table-shell">
+      <div className={`table-shell min-w-0 ${className}`}>
         <div className="bg-ink-850/60 px-4 py-3">
           <Skeleton className="h-3 w-40" />
         </div>
@@ -56,60 +57,65 @@ export default function DataTable({
   }
 
   return (
-    <div className={`table-shell ${className}`}>
-      <div className="overflow-x-auto">
+    <div className={`table-shell relative min-w-0 ${className}`}>
+      <div className="table-scroll">
         <table className="table">
           <thead>
-            <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  scope="col"
-                  style={column.width ? { width: column.width } : undefined}
-                  className={column.align === 'right' ? 'text-right' : undefined}
-                >
-                  {column.header}
-                </th>
-              ))}
-              {onRowClick && <th scope="col" className="w-10"><span className="sr-only">Open</span></th>}
-            </tr>
+          <tr>
+            {columns.map((column) => (
+              <th
+                key={column.key}
+                scope="col"
+                style={column.width ? { width: column.width } : undefined}
+                className={column.align === 'right' ? 'text-right' : undefined}
+              >
+                {column.header}
+              </th>
+            ))}
+            {onRowClick && <th scope="col" className="w-10"><span className="sr-only">Open</span></th>}
+          </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr
-                key={rowKey(row, index)}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={onRowClick ? 'cursor-pointer' : undefined}
-                tabIndex={onRowClick ? 0 : undefined}
-                onKeyDown={
-                  onRowClick
-                    ? (event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          onRowClick(row);
-                        }
-                      }
-                    : undefined
-                }
-              >
-                {columns.map((column) => (
-                  <td
-                    key={column.key}
-                    className={column.align === 'right' ? 'text-right' : undefined}
-                  >
-                    {column.render ? column.render(row, index) : row[column.key]}
-                  </td>
-                ))}
-                {onRowClick && (
-                  <td className="text-mist-500">
-                    <Icon name="chevronRight" size={16} />
-                  </td>
-                )}
-              </tr>
-            ))}
+          {rows.map((row, index) => (
+            <tr
+              key={rowKey(row, index)}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              className={onRowClick ? 'cursor-pointer' : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+              onKeyDown={
+                onRowClick
+                  ? (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      onRowClick(row);
+                    }
+                  }
+                  : undefined
+              }
+            >
+              {columns.map((column) => (
+                <td
+                  key={column.key}
+                  className={column.align === 'right' ? 'text-right' : undefined}
+                >
+                  {column.render ? column.render(row, index) : row[column.key]}
+                </td>
+              ))}
+              {onRowClick && (
+                <td className="text-mist-500">
+                  <Icon name="chevronRight" size={16} />
+                </td>
+              )}
+            </tr>
+          ))}
           </tbody>
         </table>
       </div>
+      {/* Right-edge fade: sits outside the scroll container so it never scrolls away. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-ink-900 to-transparent"
+      />
     </div>
   );
 }

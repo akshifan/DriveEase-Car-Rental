@@ -50,6 +50,15 @@ public class User extends BaseEntity {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = true;
+
+    @Column(name = "verification_token", length = 128)
+    private String verificationToken;
+
+    @Column(name = "verification_sent_at")
+    private LocalDateTime verificationSentAt;
+
     public String fullName() {
         return firstName + " " + lastName;
     }

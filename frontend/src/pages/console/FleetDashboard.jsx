@@ -13,6 +13,7 @@ import {
 import DataTable from '../../components/ui/DataTable.jsx';
 import { exportFleetCsv } from '../../api/vehicles.js';
 import { fleetDashboard } from '../../api/bookings.js';
+import { api } from '../../api/client.js';
 import { useApiResource } from '../../hooks/index.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { formatCurrency, formatDate, formatPercent, pluralise } from '../../utils/format.js';
@@ -20,6 +21,10 @@ import { CATEGORY_LABELS, VEHICLE_STATUS_LABELS } from '../../utils/constants.js
 
 export default function FleetDashboard() {
   const { data, error, loading, reload } = useApiResource(() => fleetDashboard(), []);
+  const { data: earnings } = useApiResource(
+    () => api.get('/fleet/payments/summary').catch(() => null),
+    [],
+  );
   const toast = useToast();
 
   const downloadFleet = async () => {
@@ -64,6 +69,39 @@ export default function FleetDashboard() {
     recentDamage = [],
   } = data || {};
 
+  // Empty-state: the caller owns no vehicles yet. Both a fresh fleet manager
+  // and an admin who hasn't listed a car will land here.
+  if (totalVehicles === 0) {
+    return (
+      <div className="space-y-8">
+        <header className="flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <p className="eyebrow">Fleet operations</p>
+            <h1 className="display-md mt-3">Fleet overview</h1>
+            <p className="mt-3 max-w-xl text-[14.5px] text-mist-400">
+              Your fleet is empty. Add a vehicle to start taking bookings.
+            </p>
+          </div>
+          <Button to="/console/vehicles" icon="plus" iconRight="arrowRight">
+            Add your first vehicle
+          </Button>
+        </header>
+        <div className="surface">
+          <EmptyState
+            icon="car"
+            title="No vehicles in your fleet yet"
+            description="Add a car, set its daily rate and deposit, and it will appear in the public catalogue for customers to book."
+            action={
+              <Button to="/console/vehicles" icon="plus">
+                Add a vehicle
+              </Button>
+            }
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-5">
@@ -71,18 +109,52 @@ export default function FleetDashboard() {
           <p className="eyebrow">Fleet operations</p>
           <h1 className="display-md mt-3">Fleet overview</h1>
           <p className="mt-3 max-w-xl text-[14.5px] text-mist-400">
-            Live vehicle states, today&apos;s handovers and anything waiting on a decision from you.
+            Live vehicle states, today&apos;s handovers and money earned from your vehicles.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button variant="ghost" size="md" icon="download" onClick={downloadFleet}>
             Export fleet CSV
           </Button>
+          <Button to="/console/payments" variant="ghost" size="md" icon="card">
+            Payments
+          </Button>
           <Button to="/console/bookings" iconRight="arrowRight">
             Today&apos;s work
           </Button>
         </div>
       </header>
+
+      {/* Earnings */}
+      {earnings && (
+        <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          <StatTile
+            label="Gross collected"
+            value={formatCurrency(earnings.grossCollected || 0)}
+            icon="card"
+            tone="lime"
+            hint={`${earnings.totalPayments || 0} payments`}
+          />
+          <StatTile
+            label="Refunded"
+            value={formatCurrency(earnings.refunded || 0)}
+            icon="refresh"
+            tone={Number(earnings.refunded || 0) > 0 ? 'info' : 'default'}
+          />
+          <StatTile
+            label="Net collected"
+            value={formatCurrency(earnings.netCollected || 0)}
+            icon="chart"
+            hint={`${earnings.completedBookings || 0} completed bookings`}
+          />
+          <StatTile
+            label="Live rental value"
+            value={formatCurrency(earnings.activeRentalRevenue || 0)}
+            icon="key"
+            hint="Base amounts on currently active rentals"
+          />
+        </section>
+      )}
 
       {/* Key numbers */}
       <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -114,7 +186,6 @@ export default function FleetDashboard() {
         />
       </section>
 
-      {/* Status + value */}
       <section className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <Card className="p-6">
           <h2 className="font-display text-[16px] font-semibold text-white">Vehicle states</h2>
@@ -149,7 +220,7 @@ export default function FleetDashboard() {
             <div>
               <dt className="meta">Monthly earning capacity</dt>
               <dd className="mt-1 font-display text-[24px] font-semibold text-white">
-                {formatCurrency(fleetValue)}
+                {formatCurrency(fleetValue || 0)}
               </dd>
               <p className="mt-1 text-[11.5px] text-mist-500">
                 Daily rates of every bookable car, projected across 30 days.
@@ -171,7 +242,6 @@ export default function FleetDashboard() {
         </Card>
       </section>
 
-      {/* Upcoming work */}
       <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div>
           <SectionHeading
@@ -281,7 +351,6 @@ export default function FleetDashboard() {
         </div>
       </section>
 
-      {/* Fleet table */}
       <section>
         <SectionHeading
           eyebrow="Inventory"

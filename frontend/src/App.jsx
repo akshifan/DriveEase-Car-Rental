@@ -12,7 +12,6 @@ import { Spinner } from './components/ui/primitives.jsx';
 import { destroySmoothScroll, initSmoothScroll, refreshScrollTriggers } from './animations/index.js';
 import { ROLES } from './utils/constants.js';
 
-// The landing page ships in the entry chunk; everything else is split.
 import HomePage from './pages/public/HomePage.jsx';
 
 const FleetPage = lazy(() => import('./pages/public/FleetPage.jsx'));
@@ -23,6 +22,8 @@ const LoginPage = lazy(() => import('./pages/auth/LoginPage.jsx'));
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage.jsx'));
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage.jsx'));
 const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage.jsx'));
+const RegisterFleetPage = lazy(() => import('./pages/auth/RegisterFleetPage.jsx'));
+const VerifyFleetEmailPage = lazy(() => import('./pages/auth/VerifyFleetEmailPage.jsx'));
 
 const CustomerDashboard = lazy(() => import('./pages/customer/CustomerDashboard.jsx'));
 const BookingsPage = lazy(() => import('./pages/customer/BookingsPage.jsx'));
@@ -38,6 +39,7 @@ const FleetBookings = lazy(() => import('./pages/console/FleetBookings.jsx'));
 const FleetVehicles = lazy(() => import('./pages/console/FleetVehicles.jsx'));
 const FleetMaintenance = lazy(() => import('./pages/console/FleetMaintenance.jsx'));
 const FleetDamage = lazy(() => import('./pages/console/FleetDamage.jsx'));
+const FleetPayments = lazy(() => import('./pages/console/FleetPayments.jsx'));
 const VehicleHistoryPage = lazy(() => import('./pages/console/VehicleHistoryPage.jsx'));
 
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard.jsx'));
@@ -47,6 +49,7 @@ const AdminBookings = lazy(() => import('./pages/admin/AdminBookings.jsx'));
 const AdminPayments = lazy(() => import('./pages/admin/AdminPayments.jsx'));
 const AdminReviews = lazy(() => import('./pages/admin/AdminReviews.jsx'));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports.jsx'));
+const AdminFleets = lazy(() => import('./pages/admin/AdminFleets.jsx'));
 
 function RouteFallback() {
   return (
@@ -60,10 +63,6 @@ function RouteFallback() {
 }
 
 export default function App() {
-  /**
-   * Smooth scrolling is initialised once for the app's lifetime. It is a no-op
-   * when the visitor prefers reduced motion.
-   */
   useEffect(() => {
     initSmoothScroll();
     const refresh = () => refreshScrollTriggers();
@@ -84,16 +83,26 @@ export default function App() {
             <Route path="fleet" element={<FleetPage />} />
             <Route path="fleet/:vehicleId" element={<VehicleDetailPage />} />
             <Route path="support" element={<SupportPage />} />
-            <Route path="login" element={<LoginPage />} />
-            <Route path="register" element={<RegisterPage />} />
-            <Route path="forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="reset-password" element={<ResetPasswordPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
 
+          <Route path="login" element={<LoginPage />} />
+          <Route path="register" element={<RegisterPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="reset-password" element={<ResetPasswordPage />} />
+          <Route path="register-fleet" element={<RegisterFleetPage />} />
+          <Route path="verify-fleet-email" element={<VerifyFleetEmailPage />} />
+
+          {/*
+            Customer portal: CUSTOMER and ADMIN can enter.
+            - CUSTOMER lands here after login.
+            - ADMIN reaches here only by explicit navigation, and does so to use
+              the same "book a vehicle" experience a customer would.
+          */}
+          {/* Customer portal — explicit CUSTOMER role guard */}
           <Route
             element={
-              <RequireAuth>
+              <RequireAuth roles={[ROLES.CUSTOMER, ROLES.ADMIN]}>
                 <DashboardLayout />
               </RequireAuth>
             }
@@ -105,9 +114,26 @@ export default function App() {
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="payments/:paymentId" element={<ReceiptPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            {/* Legacy path — kept so existing bookmarks / links still work. */}
             <Route path="dashboard/notifications" element={<NotificationsPage />} />
           </Route>
 
+          {/*
+            Shared notifications page: reachable by every authenticated role
+            (customer, fleet manager, admin). Rendered inside the dashboard
+            shell so the sidebar / top bar stay visible.
+          */}
+          <Route
+            element={
+              <RequireAuth roles={[ROLES.CUSTOMER, ROLES.FLEET_MANAGER, ROLES.ADMIN]}>
+                <DashboardLayout />
+              </RequireAuth>
+            }
+          >
+            <Route path="notifications" element={<NotificationsPage />} />
+          </Route>
+
+          {/* Fleet console: FLEET_MANAGER and ADMIN. */}
           <Route
             element={
               <RequireAuth roles={[ROLES.FLEET_MANAGER, ROLES.ADMIN]}>
@@ -121,8 +147,10 @@ export default function App() {
             <Route path="console/vehicles/:vehicleId/history" element={<VehicleHistoryPage />} />
             <Route path="console/maintenance" element={<FleetMaintenance />} />
             <Route path="console/damage" element={<FleetDamage />} />
+            <Route path="console/payments" element={<FleetPayments />} />
           </Route>
 
+          {/* Admin console: ADMIN only. */}
           <Route
             element={
               <RequireAuth roles={[ROLES.ADMIN]}>
@@ -131,6 +159,7 @@ export default function App() {
             }
           >
             <Route path="admin" element={<AdminDashboard />} />
+            <Route path="admin/fleets" element={<AdminFleets />} />
             <Route path="admin/users" element={<AdminUsers />} />
             <Route path="admin/vehicles" element={<AdminVehicles />} />
             <Route path="admin/bookings" element={<AdminBookings />} />

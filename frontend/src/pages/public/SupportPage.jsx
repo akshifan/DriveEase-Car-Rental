@@ -25,7 +25,7 @@ const FAQS = [
 ];
 
 const LOCATIONS = [
-  { city: 'Mangaluru', address: 'Kadri Road, near Bunts Hostel Circle', hours: '7am – 11pm' },
+  { city: 'Mangaluru', address: 'Bajpe Airport Road, near bajpe, Jarinagara', hours: '7am – 11pm' },
   { city: 'Bengaluru', address: 'Indiranagar 100ft Road, HAL 2nd Stage', hours: '24 hours' },
 ];
 
@@ -41,11 +41,11 @@ export default function SupportPage() {
             answers to what people ask most.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button href="tel:+918200012345" icon="phone">
-              +91 82000 12345
+            <Button href="tel:+918073103243" icon="phone">
+              +91 80731 03243
             </Button>
             <Button href="mailto:hello@driveease.app" variant="ghost" icon="mail">
-              hello@driveease.app
+              akshifan@driveease.app
             </Button>
           </div>
         </div>

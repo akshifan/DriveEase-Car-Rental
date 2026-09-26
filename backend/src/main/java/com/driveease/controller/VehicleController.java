@@ -7,6 +7,7 @@ import com.driveease.entity.FuelType;
 import com.driveease.entity.Transmission;
 import com.driveease.entity.VehicleCategory;
 import com.driveease.entity.VehicleStatus;
+import com.driveease.security.SecurityUtils;
 import com.driveease.service.DamageService;
 import com.driveease.service.VehicleHistoryService;
 import com.driveease.service.VehicleService;
@@ -47,50 +48,40 @@ public class VehicleController {
 
     @GetMapping
     @SecurityRequirements
-    @Operation(summary = "Search the fleet",
-            description = """
-                    Server-side filtering, sorting and pagination. Supplying `pickupDate` and `returnDate`
-                    excludes every vehicle that already has a PENDING/CONFIRMED/ACTIVE booking overlapping
-                    the window - the availability answer is authoritative and produced by the database.
-
-                    Default sort is `dailyRate,asc`; `sort` accepts any vehicle field, e.g. `sort=dailyRate,desc`.
-                    """)
+    @Operation(summary = "Search the fleet")
     public PageResponse<VehicleResponse> search(
-            @RequestParam(required = false) LocalDate pickupDate,
-            @RequestParam(required = false) LocalDate returnDate,
-            @RequestParam(required = false) String location,
-            @RequestParam(required = false) VehicleCategory category,
-            @RequestParam(required = false) FuelType fuelType,
-            @RequestParam(required = false) Transmission transmission,
-            @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice,
-            @RequestParam(required = false) Integer minSeats,
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) VehicleStatus status,
-            @RequestParam(required = false, defaultValue = "false") boolean includeUnavailable,
-            @PageableDefault(size = 20, sort = "dailyRate", direction = Sort.Direction.ASC) Pageable pageable) {
+        @RequestParam(required = false) LocalDate pickupDate,
+        @RequestParam(required = false) LocalDate returnDate,
+        @RequestParam(required = false) String location,
+        @RequestParam(required = false) VehicleCategory category,
+        @RequestParam(required = false) FuelType fuelType,
+        @RequestParam(required = false) Transmission transmission,
+        @RequestParam(required = false) BigDecimal minPrice,
+        @RequestParam(required = false) BigDecimal maxPrice,
+        @RequestParam(required = false) Integer minSeats,
+        @RequestParam(required = false) String search,
+        @RequestParam(required = false) VehicleStatus status,
+        @RequestParam(required = false, defaultValue = "false") boolean includeUnavailable,
+        @PageableDefault(size = 20, sort = "dailyRate", direction = Sort.Direction.ASC) Pageable pageable) {
+        // Public catalogue: no owner filter. Staff console uses /fleet/vehicles.
         return vehicleService.search(pickupDate, returnDate, location, category, fuelType, transmission,
-                minPrice, maxPrice, minSeats, search, status, includeUnavailable, pageable);
+            minPrice, maxPrice, minSeats, search, status, includeUnavailable, null, pageable);
     }
 
     @GetMapping("/locations")
     @SecurityRequirements
-    @Operation(summary = "Distinct pickup locations in the active fleet")
     public List<String> locations() {
         return vehicleService.locations();
     }
 
     @GetMapping("/categories")
     @SecurityRequirements
-    @Operation(summary = "Category rollup for the catalogue filter rail",
-            description = "Vehicle count and cheapest daily rate per category, aggregated in the database.")
     public List<Map<String, Object>> categories() {
         return vehicleService.categories();
     }
 
     @GetMapping("/{id}")
     @SecurityRequirements
-    @Operation(summary = "Vehicle detail with specs, gallery, ratings and availability windows")
     public VehicleDetailResponse detail(@PathVariable Long id,
                                         @RequestParam(required = false) LocalDate pickupDate,
                                         @RequestParam(required = false) LocalDate returnDate) {
@@ -99,9 +90,8 @@ public class VehicleController {
 
     @GetMapping("/{id}/availability")
     @SecurityRequirements
-    @Operation(summary = "Booked windows for a vehicle (used by the date picker)")
     public PageResponse<BookingResponse> availability(@PathVariable Long id,
-                                                     @PageableDefault(size = 20) Pageable pageable) {
+                                                      @PageableDefault(size = 20) Pageable pageable) {
         return vehicleService.availability(id, pageable);
     }
 
@@ -109,54 +99,45 @@ public class VehicleController {
     @PreAuthorize("hasAnyRole('FLEET_MANAGER','ADMIN')")
     @Operation(summary = "Add a vehicle to the fleet")
     public ResponseEntity<VehicleResponse> create(@Valid @RequestBody VehicleCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(vehicleService.create(request));
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(vehicleService.create(request, SecurityUtils.requireUser()));
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAnyRole('FLEET_MANAGER','ADMIN')")
-    @Operation(summary = "Partially update a vehicle",
-            description = "Every field is optional. Status changes are validated against the vehicle state machine.")
     public VehicleResponse update(@PathVariable Long id, @Valid @RequestBody VehicleUpdateRequest request) {
-        return vehicleService.update(id, request);
+        return vehicleService.update(id, request, SecurityUtils.requireUser());
     }
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('FLEET_MANAGER','ADMIN')")
-    @Operation(summary = "Move a vehicle through its status machine",
-            description = "AVAILABLE -> RENTED/MAINTENANCE/RETIRED, RENTED -> AVAILABLE/MAINTENANCE, "
-                    + "MAINTENANCE -> AVAILABLE/RETIRED. RETIRED is terminal and requires a reason.")
     public VehicleResponse changeStatus(@PathVariable Long id, @Valid @RequestBody VehicleStatusRequest request) {
-        return vehicleService.changeStatus(id, request);
+        return vehicleService.changeStatus(id, request, SecurityUtils.requireUser());
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Retire a vehicle (soft delete)",
-            description = "Requires a reason; existing bookings are honoured, the vehicle disappears from search.")
     public ResponseEntity<Void> retire(@PathVariable Long id, @RequestParam String reason) {
-        vehicleService.retire(id, reason);
+        vehicleService.retire(id, reason, SecurityUtils.requireUser());
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/history")
     @PreAuthorize("hasAnyRole('FLEET_MANAGER','ADMIN')")
-    @Operation(summary = "Merged vehicle history: rentals, maintenance and damage")
     public VehicleHistoryResponse history(@PathVariable Long id) {
-        return historyService.history(id);
+        return historyService.history(id, SecurityUtils.requireUser());
     }
 
     @PostMapping("/{id}/damage")
     @PreAuthorize("hasAnyRole('FLEET_MANAGER','ADMIN')")
-    @Operation(summary = "Log damage found on a vehicle",
-            description = "CRITICAL damage automatically parks the vehicle in MAINTENANCE.")
     public ResponseEntity<DamageResponse> logDamage(@PathVariable Long id, @Valid @RequestBody DamageRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(damageService.log(id, request));
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(damageService.log(id, request, SecurityUtils.requireUser()));
     }
 
     @GetMapping("/{id}/damage")
     @PreAuthorize("hasAnyRole('FLEET_MANAGER','ADMIN')")
-    @Operation(summary = "Damage records for a vehicle")
     public List<DamageResponse> damage(@PathVariable Long id) {
-        return damageService.forVehicle(id);
+        return damageService.forVehicle(id, SecurityUtils.requireUser());
     }
 }

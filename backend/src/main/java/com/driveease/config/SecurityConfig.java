@@ -82,12 +82,16 @@ public class SecurityConfig {
                                 "/api/v1/auth/refresh",
                                 "/api/v1/auth/forgot-password",
                                 "/api/v1/auth/reset-password",
-                                "/api/v1/auth/logout").permitAll()
+                                "/api/v1/auth/logout",
+                            "/api/v1/auth/register-fleet",
+                            "/api/v1/auth/verify-fleet-email",
+                            "/api/v1/auth/resend-fleet-verification").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/vehicles", "/api/v1/vehicles/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/vehicles/locations").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/vehicles/categories").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/reviews/vehicle/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/reviews/summary/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

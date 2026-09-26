@@ -1,31 +1,21 @@
 # =============================================================================
 # DriveEase API - development profile
+# Overrides for the base application.properties. Only settings that DIFFER
+# from the base belong here.
 # =============================================================================
 spring:
-  datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/driveease}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      pool-name: driveease-dev-pool
   jpa:
     show-sql: false
   flyway:
     clean-disabled: false
+    baseline-on-migrate: false
 
 driveease:
   seed:
-    enabled: ${SEED_DEMO_DATA:true}    # demo fleet + demo accounts for local exploration
-  jwt:
-    cookie:
-      secure: false                    # plain HTTP on localhost
-  email:
-    provider: mock
+    enabled: false
 
 logging:
   level:
     com.driveease: DEBUG
     org.springframework.security: INFO
+    org.springframework.mail: DEBUG

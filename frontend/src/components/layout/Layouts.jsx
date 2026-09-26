@@ -8,13 +8,10 @@ import { Button, Spinner } from '../ui/primitives.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { observeReveals } from '../../animations/revealAnimations.js';
 import { scrollToTop } from '../../animations/smoothScroll.js';
-import { STAFF_ROLES, ROLES } from '../../utils/constants.js';
+import { ROLES, isRouteAllowedForRole, landingRouteFor } from '../../utils/constants.js';
 
-/** Public shell: marketing pages, catalogue and auth screens. */
 export function PublicLayout() {
   const location = useLocation();
-
-  // Re-observe reveals on every route change; the observer is shared and cheap.
   useEffect(() => {
     const dispose = observeReveals(document);
     return dispose;
@@ -31,7 +28,6 @@ export function PublicLayout() {
   );
 }
 
-/** Resets scroll on navigation - Lenis when active, native otherwise. */
 export function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -41,11 +37,6 @@ export function ScrollToTop() {
   return null;
 }
 
-/**
- * Guards a subtree behind authentication and (optionally) a set of roles.
- * The client-side check is a convenience only - every privileged action is
- * authorised again by the API.
- */
 export function RequireAuth({ roles, children }) {
   const { isAuthenticated, isRestoring, user } = useAuth();
   const location = useLocation();
@@ -64,7 +55,11 @@ export function RequireAuth({ roles, children }) {
   }
 
   if (roles && roles.length && !roles.includes(user?.role)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={landingRouteFor(user)} replace state={null} />;
+  }
+
+  if (!isRouteAllowedForRole(location.pathname, user?.role)) {
+    return <Navigate to={landingRouteFor(user)} replace state={null} />;
   }
 
   return children;
@@ -81,30 +76,47 @@ const FLEET_NAV = [
   { to: '/console', label: 'Fleet overview', icon: 'gauge', end: true },
   { to: '/console/bookings', label: 'Bookings', icon: 'calendar' },
   { to: '/console/vehicles', label: 'Vehicles', icon: 'car' },
+  { to: '/console/payments', label: 'Payments', icon: 'card' },
   { to: '/console/maintenance', label: 'Maintenance', icon: 'wrench' },
   { to: '/console/damage', label: 'Damage log', icon: 'alert' },
 ];
 
 const ADMIN_NAV = [
   { to: '/admin', label: 'Admin overview', icon: 'shield', end: true },
+  { to: '/admin/fleets', label: 'Fleet partners', icon: 'building' },
   { to: '/admin/users', label: 'Users', icon: 'users' },
   { to: '/admin/vehicles', label: 'All vehicles', icon: 'car' },
   { to: '/admin/bookings', label: 'All bookings', icon: 'calendar' },
-  { to: '/admin/payments', label: 'Payments & refunds', icon: 'card' },
+  { to: '/admin/payments', label: 'All payments', icon: 'card' },
   { to: '/admin/reviews', label: 'Reviews', icon: 'star' },
   { to: '/admin/reports', label: 'Reports', icon: 'chart' },
 ];
 
-/** Console shell for customers, fleet managers and admins. */
+/**
+ * Console shell. Each role sees exactly the sections its portal needs.
+ *
+ * - CUSTOMER: "My account"
+ * - FLEET_MANAGER: "My fleet"
+ * - ADMIN: "My account" + "My fleet" + "Administration"
+ *   (admin is a customer, a fleet owner, and an administrator)
+ */
 export function DashboardLayout() {
   const { user } = useAuth();
   const location = useLocation();
 
   const sections = useMemo(() => {
-    const groups = [{ title: 'Your account', items: CUSTOMER_NAV }];
-    if (STAFF_ROLES.includes(user?.role)) groups.push({ title: 'Fleet operations', items: FLEET_NAV });
-    if (user?.role === ROLES.ADMIN) groups.push({ title: 'Administration', items: ADMIN_NAV });
-    return groups;
+    if (!user) return [];
+    if (user.role === ROLES.ADMIN) {
+      return [
+        { title: 'My account', items: CUSTOMER_NAV },
+        { title: 'My fleet', items: FLEET_NAV },
+        { title: 'Administration', items: ADMIN_NAV },
+      ];
+    }
+    if (user.role === ROLES.FLEET_MANAGER) {
+      return [{ title: 'My fleet', items: FLEET_NAV }];
+    }
+    return [{ title: 'My account', items: CUSTOMER_NAV }];
   }, [user?.role]);
 
   useEffect(() => {
@@ -116,7 +128,7 @@ export function DashboardLayout() {
     <div className="flex min-h-screen flex-col bg-ink-950 lg:flex-row">
       <aside className="hidden w-[260px] shrink-0 border-r border-white/[0.06] bg-ink-900/60 lg:flex lg:flex-col">
         <div className="flex h-[76px] items-center px-6">
-          <Logo />
+          <Logo to={landingRouteFor(user)} />
         </div>
         <div className="flex-1 overflow-y-auto px-3 pb-8">
           {sections.map((section) => (
@@ -129,7 +141,7 @@ export function DashboardLayout() {
                   <NavLink
                     key={item.to}
                     to={item.to}
-                    end={item.end}
+                    {...(item.end ? { end: true } : {})}
                     className={({ isActive }) =>
                       `flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] transition ${
                         isActive
@@ -162,22 +174,25 @@ export function DashboardLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Offset the fixed navbar past the sidebar on large screens so the logos never collide. */}
-        <Navbar className="lg:left-[260px]" />
+        <Navbar variant="dashboard" />
+
         <main id="main" className="flex-1 px-5 pb-20 pt-[92px] sm:px-8 lg:pt-[100px]">
           <div className="mx-auto w-full max-w-[1180px]">
             <Outlet />
           </div>
         </main>
-        <div className="lg:hidden">
-          <Footer />
-        </div>
+
+        {/*
+          Footer is rendered in the dashboard shell on every breakpoint, so the
+          same chrome appears on desktop and mobile. It lives in the right-hand
+          column so the sidebar stays pinned to the viewport.
+        */}
+        <Footer />
       </div>
     </div>
   );
 }
 
-/** 404 shell. */
 export function NotFoundPage() {
   return (
     <div className="shell flex min-h-[70vh] flex-col items-center justify-center text-center">

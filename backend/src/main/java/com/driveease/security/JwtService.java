@@ -14,20 +14,27 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
+
+import org.springframework.core.env.Environment;
 
 /** Issues and validates the short-lived access token (HS256). */
 @Service
 public class JwtService {
 
+
+
     private static final Logger log = LoggerFactory.getLogger(JwtService.class);
 
     private final JwtProperties properties;
+    private final Environment environment;
     private SecretKey signingKey;
 
-    public JwtService(JwtProperties properties) {
+    public JwtService(JwtProperties properties, Environment environment) {
         this.properties = properties;
+        this.environment = environment;
     }
 
     @PostConstruct
@@ -35,7 +42,13 @@ public class JwtService {
         byte[] keyBytes = properties.getSecret().getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
             throw new IllegalStateException(
-                    "driveease.jwt.secret must be at least 32 bytes for HS256. Configure JWT_SECRET.");
+                "driveease.jwt.secret must be at least 32 bytes for HS256. Configure JWT_SECRET.");
+        }
+        boolean prodProfile = Arrays.asList(environment.getActiveProfiles()).contains("prod");
+        if (prodProfile && properties.getSecret().contains("development-only")) {
+            throw new IllegalStateException(
+                "driveease.jwt.secret is the development fallback and must not be used with the 'prod' "
+                    + "profile. Set the JWT_SECRET environment variable.");
         }
         this.signingKey = Keys.hmacShaKeyFor(keyBytes);
     }

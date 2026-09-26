@@ -38,6 +38,7 @@ public record VehicleCreateRequest(
         @NotNull(message = "Fuel type is required") FuelType fuelType,
         @NotNull(message = "Transmission is required") Transmission transmission,
         String imageUrl,
+        @Size(max = 15, message = "At most 15 gallery images are allowed.")
         List<String> galleryUrls,
         @Size(max = 2000) String description,
         List<String> features

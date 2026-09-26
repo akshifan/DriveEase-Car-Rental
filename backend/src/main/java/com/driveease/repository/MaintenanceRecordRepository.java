@@ -14,6 +14,9 @@ public interface MaintenanceRecordRepository extends JpaRepository<MaintenanceRe
     @EntityGraph(attributePaths = "vehicle")
     Page<MaintenanceRecord> findAllByOrderByScheduledDateDesc(Pageable pageable);
 
+    @EntityGraph(attributePaths = "vehicle")
+    Page<MaintenanceRecord> findByVehicleOwnerIdOrderByScheduledDateDesc(Long ownerId, Pageable pageable);
+
     List<MaintenanceRecord> findByVehicleIdOrderByScheduledDateDesc(Long vehicleId);
 
     long countByStatus(MaintenanceStatus status);

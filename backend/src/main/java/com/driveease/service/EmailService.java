@@ -62,7 +62,7 @@ public class EmailService {
             }
         }
         log.info("""
-                
+
                 ─────────────── DriveEase email (mock provider) ───────────────
                 To      : {}
                 Subject : {}
@@ -140,4 +140,17 @@ public class EmailService {
                         + properties.getEmail().getAppBaseUrl() + "/bookings/" + bookingReference + "\n\n"
                         + "Booking: " + bookingReference);
     }
+
+    public void sendFleetVerification(String email, String firstName, String companyName, String token) {
+        String link = properties.getEmail().getAppBaseUrl()
+            + "/verify-fleet-email?token=" + token;
+        send(email, "Verify your DriveEase fleet account",
+            "Hi " + firstName + ",\n\n"
+                + "Welcome aboard! Click the link below to verify your email and activate your\n"
+                + "fleet account for " + companyName + ".\n\n"
+                + link + "\n\n"
+                + "The link expires in 48 hours. If you did not sign up, ignore this message.\n\n"
+                + "— The DriveEase team");
+    }
+
 }

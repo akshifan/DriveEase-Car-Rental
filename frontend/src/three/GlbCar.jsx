@@ -22,6 +22,7 @@ export default function GlbCar({ modelRef, url, quality = 'high' }) {
           child.material.envMapIntensity = 1.1;
           child.material.needsUpdate = true;
         }
+        <div className="pointer-events-none absolute inset-0 bg-ink-950/40" />
       }
     });
   }, [scene, quality]);

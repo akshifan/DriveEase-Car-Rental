@@ -1,33 +1,90 @@
-# ── Java / Maven ──────────────────────────────────────────────
-backend/target/
-*.class
-*.jar
-!.mvn/wrapper/maven-wrapper.jar
-.mvn/
-mvnw
-mvnw.cmd
-*.log
-hs_err_pid*
+# =========================================================
+# IDE / Editor
+# =========================================================
+.idea/
+.vscode/
+*.iml
 
-# ── Node / Vite ───────────────────────────────────────────────
-frontend/node_modules/
-frontend/dist/
-*.local
-.npm
-.eslintcache
-
-# ── Environments & secrets (never commit real values) ─────────
+# =========================================================
+# Environment / Secrets
+# =========================================================
 .env
 .env.*
 !.env.example
 
-# ── IDE / OS ──────────────────────────────────────────────────
-.idea/
-.vscode/
-*.iml
+# Spring / Java
+application-local.properties
+application-prod.properties
+application-local.yml
+application-prod.yml
+
+# =========================================================
+# Backend - Node
+# =========================================================
+backend/node_modules/
+backend/npm-debug.log*
+backend/yarn-debug.log*
+backend/yarn-error.log*
+
+# =========================================================
+# Backend - Maven / Spring Boot
+# =========================================================
+backend/target/
+backend/.mvn/
+*.class
+
+# =========================================================
+# Frontend - Node / Vite
+# =========================================================
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# =========================================================
+# Logs
+# =========================================================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================================================
+# Uploads / Runtime-generated files
+# =========================================================
+backend/uploads/
+uploads/
+
+# =========================================================
+# Database / Local development
+# =========================================================
+*.sql.bak
+*.dump
+*.backup
+
+# =========================================================
+# Build / Temporary files
+# =========================================================
+*.tmp
+*.temp
+*.cache
 .DS_Store
 Thumbs.db
 
-# ── Coverage / test artifacts ─────────────────────────────────
+# =========================================================
+# DriveEase generated bundles
+# =========================================================
+*-bundle.txt
+*backend-bundle.txt
+*frontend-bundle.txt
+
+# =========================================================
+# Test / Coverage
+# =========================================================
 coverage/
-*.exec
+.nyc_output/
+
+# =========================================================
+# OS files
+# =========================================================
+Desktop.ini

@@ -17,7 +17,7 @@ import { formatCurrency, formatDate, formatRelativeDays, pluralise } from '../..
 
 function UpcomingRow({ booking }) {
   return (
-    <li className="flex items-center gap-4 border-b border-white/[0.05] px-1 py-4 last:border-b-0">
+    <li className="flex flex-wrap items-center gap-4 border-b border-white/[0.05] px-1 py-4 last:border-b-0">
       <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-lime">
         <Icon name="car" size={19} />
       </span>
@@ -79,37 +79,23 @@ export default function CustomerDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Greeting */}
       <section className="surface relative overflow-hidden p-7">
         <div className="pointer-events-none absolute inset-0 hairline-grid opacity-30" aria-hidden="true" />
-        <div className="relative flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <p className="eyebrow">Your garage</p>
-            <h1 className="display-md mt-3">
-              {currentBooking ? 'Enjoy the drive.' : `Welcome back, ${user?.firstName || 'driver'}.`}
-            </h1>
-            <p className="mt-3 max-w-xl text-[14.5px] leading-relaxed text-mist-400">
-              {currentBooking
-                ? `You have a car out right now - the ${currentBooking.vehicle?.displayName}, returning on ${formatDate(currentBooking.returnDate)}.`
-                : upcomingBookings.length
-                  ? `Your next trip starts ${formatRelativeDays(upcomingBookings[0].pickupDate).toLowerCase()}. Everything is confirmed and the car will be waiting.`
-                  : 'No active rentals. Browse the fleet and reserve something for the weekend.'}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button to="/fleet" iconRight="arrowRight">
-              Book a car
-            </Button>
-            {currentBooking && (
-              <Button to={`/bookings/${currentBooking.id}`} variant="ghost">
-                View current trip
-              </Button>
-            )}
-          </div>
+        <div className="relative">
+          <p className="eyebrow">Your garage</p>
+          <h1 className="display-md mt-3">
+            {currentBooking ? 'Enjoy the drive.' : `Welcome back, ${user?.firstName || 'driver'}.`}
+          </h1>
+          <p className="mt-3 max-w-xl text-[14.5px] leading-relaxed text-mist-400">
+            {currentBooking
+              ? `You have a car out right now - the ${currentBooking.vehicle?.displayName}, returning on ${formatDate(currentBooking.returnDate)}.`
+              : upcomingBookings.length
+                ? `Your next trip starts ${formatRelativeDays(upcomingBookings[0].pickupDate).toLowerCase()}. Everything is confirmed and the car will be waiting.`
+                : 'No active rentals. Browse the fleet and reserve something for the weekend.'}
+          </p>
         </div>
       </section>
 
-      {/* Statistics */}
       <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile label="Total bookings" value={totalBookings} icon="calendar" />
         <StatTile label="Completed trips" value={completedBookings} icon="checkCircle" tone="lime" />
@@ -123,7 +109,6 @@ export default function CustomerDashboard() {
       </section>
 
       <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
-        {/* Upcoming */}
         <section>
           <SectionHeading
             eyebrow="Upcoming"
@@ -157,7 +142,6 @@ export default function CustomerDashboard() {
         </section>
 
         <div className="space-y-8">
-          {/* Review prompts */}
           {reviewableBookings.length > 0 && (
             <section>
               <h2 className="font-display text-[16px] font-semibold text-white">
@@ -183,7 +167,6 @@ export default function CustomerDashboard() {
             </section>
           )}
 
-          {/* Recent payments */}
           <section>
             <h2 className="font-display text-[16px] font-semibold text-white">Recent payments</h2>
             <Card className="mt-4 px-5 py-2">

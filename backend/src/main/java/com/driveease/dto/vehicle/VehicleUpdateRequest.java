@@ -27,6 +27,7 @@ public record VehicleUpdateRequest(
         FuelType fuelType,
         Transmission transmission,
         String imageUrl,
+        @Size(max = 15, message = "At most 15 gallery images are allowed.")
         List<String> galleryUrls,
         @Size(max = 2000) String description,
         List<String> features,

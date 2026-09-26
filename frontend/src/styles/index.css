@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 /*
- * DriveEase design system
- * -----------------------
- * One dark, cinematic automotive identity: near-black graphite surfaces, a
- * single high-voltage lime accent, generous whitespace and restrained motion.
- * Everything below is a token-level primitive - components never hard-code
- * colours or shadows.
+ * DriveEase — glassmorphism design system
+ * ---------------------------------------
+ * Every surface is a frosted panel: a translucent tint, a backdrop blur,
+ * and a top-edge highlight border that reads as the rim of a glass pane.
+ * The page itself paints an ambient radial scene so the panels have
+ * coloured light to refract.
  */
 
 @layer base {
@@ -30,9 +30,15 @@
     font-feature-settings: 'ss01' on, 'cv11' on;
     text-rendering: optimizeLegibility;
     overflow-x: hidden;
+
+    /* The ambient scene: three soft radial spots in brand + cool colours.
+       This is what the frosted panels actually blur. Without it, glass
+       looks like flat dark grey. */
+    background-image: theme('backgroundImage.glass-scene');
+    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
 
-  /* Lenis drives scrolling; native smooth-scroll must not fight it. */
   html.lenis,
   html.lenis body {
     height: auto;
@@ -60,15 +66,14 @@
     @apply transition-colors duration-200;
   }
 
-  /* A single, consistent focus treatment for every interactive element. */
   :focus-visible {
-    outline: 2px solid theme('colors.lime.DEFAULT');
+    outline: 2px solid theme('colors.accent.DEFAULT');
     outline-offset: 3px;
-    border-radius: 4px;
+    border-radius: 6px;
   }
 
   ::selection {
-    background: theme('colors.lime.DEFAULT');
+    background: theme('colors.accent.DEFAULT');
     color: theme('colors.ink.950');
   }
 
@@ -77,15 +82,17 @@
     height: 10px;
   }
   ::-webkit-scrollbar-track {
-    background: theme('colors.ink.950');
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: theme('colors.ink.600');
+    background: rgba(255, 255, 255, 0.08);
     border-radius: 999px;
-    border: 2px solid theme('colors.ink.950');
+    border: 2px solid transparent;
+    background-clip: padding-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: theme('colors.mist.500');
+    background: rgba(34, 211, 238, 0.35);
+    background-clip: padding-box;
   }
 
   input[type='date']::-webkit-calendar-picker-indicator {
@@ -94,7 +101,6 @@
     cursor: pointer;
   }
 
-  /* Honour the OS-level motion preference everywhere, including GSAP scenes. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -118,24 +124,51 @@
   }
 
   .eyebrow {
-    @apply font-mono text-[11px] uppercase tracking-[0.28em] text-lime;
+    @apply font-mono text-[11px] uppercase tracking-[0.28em] text-accent;
   }
 
   .rule {
     @apply h-px w-full bg-gradient-to-r from-white/10 via-white/5 to-transparent;
   }
 
-  /* ---------- surfaces ---------- */
+  /* ---------- glass surfaces ----------
+   * Three elevation levels. `surface` for cards, `surface-flat` for
+   * compact panels, `surface-inset` for fields sunk into a panel.
+   * The `bg-glass-panel` gives each one its top-edge fade; the border +
+   * shadow give it the rim highlight.
+   */
+
   .surface {
-    @apply rounded-2xl border border-white/[0.07] bg-ink-900/80 shadow-lift backdrop-blur-[2px];
+    @apply relative overflow-hidden rounded-2xl border border-white/[0.08];
+    background-color: rgba(14, 20, 32, 0.55);
+    background-image: theme('backgroundImage.glass-panel');
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    box-shadow: theme('boxShadow.glass');
   }
 
   .surface-flat {
-    @apply rounded-2xl border border-white/[0.07] bg-ink-850;
+    @apply relative overflow-hidden rounded-2xl border border-white/[0.08];
+    background-color: rgba(14, 20, 32, 0.7);
+    background-image: theme('backgroundImage.glass-panel');
+    backdrop-filter: blur(14px) saturate(130%);
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
+    box-shadow: theme('boxShadow.glass');
   }
 
   .surface-inset {
-    @apply rounded-xl border border-white/[0.06] bg-ink-950/60;
+    @apply rounded-xl border border-white/[0.06];
+    background-color: rgba(10, 14, 23, 0.55);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
+  }
+
+  /* Raised variant for hover and active states. */
+  .surface-raised {
+    @apply surface transition-all duration-300;
+  }
+  .surface-raised:hover {
+    background-color: rgba(19, 26, 42, 0.6);
+    box-shadow: theme('boxShadow.glassLg');
   }
 
   .hairline-grid {
@@ -143,29 +176,52 @@
     background-size: 56px 56px;
   }
 
-  /* ---------- buttons ---------- */
+  /* ---------- buttons ----------
+   * Primary is a frosted accent — translucent cyan with a solid text colour
+   * on top. Ghost/quiet keep the glass language but at low contrast.
+   */
+
   .btn {
     @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full
-           text-sm font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-45;
+    text-sm font-medium transition-all duration-200
+    disabled:cursor-not-allowed disabled:opacity-45;
   }
 
-  .btn-md {
-    @apply h-11 px-5;
-  }
-  .btn-sm {
-    @apply h-9 px-4 text-[13px];
-  }
-  .btn-lg {
-    @apply h-[52px] px-7 text-[15px];
-  }
+  .btn-md { @apply h-11 px-5; }
+  .btn-sm { @apply h-9 px-4 text-[13px]; }
+  .btn-lg { @apply h-[52px] px-7 text-[15px]; }
 
   .btn-primary {
-    @apply bg-lime text-ink-950 hover:bg-lime-soft active:scale-[0.985]
-           shadow-[0_10px_30px_-14px_rgba(215,242,75,0.65)];
+    @apply relative text-ink-950;
+    background-image: linear-gradient(180deg, #67E8F9 0%, #22D3EE 100%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow:
+      0 0 0 1px rgba(34, 211, 238, 0.35),
+      0 12px 32px -12px rgba(34, 211, 238, 0.55),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+    transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+  }
+  .btn-primary:hover {
+    filter: brightness(1.08);
+    box-shadow:
+      0 0 0 1px rgba(34, 211, 238, 0.5),
+      0 18px 44px -14px rgba(34, 211, 238, 0.7),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+  }
+  .btn-primary:active {
+    transform: scale(0.985);
   }
 
   .btn-ghost {
-    @apply border border-white/12 bg-white/[0.04] text-mist-100 hover:border-white/25 hover:bg-white/[0.08];
+    @apply border border-white/[0.12] text-mist-100;
+    background-color: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px) saturate(120%);
+    -webkit-backdrop-filter: blur(12px) saturate(120%);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  }
+  .btn-ghost:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.22);
   }
 
   .btn-quiet {
@@ -173,34 +229,62 @@
   }
 
   .btn-danger {
-    @apply border border-signal-danger/40 bg-signal-danger/10 text-signal-danger
-           hover:bg-signal-danger/20;
+    @apply border border-signal-danger/40 text-signal-danger;
+    background-color: rgba(248, 113, 113, 0.10);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .btn-danger:hover {
+    background-color: rgba(248, 113, 113, 0.18);
   }
 
   .icon-btn {
-    @apply inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10
-           bg-white/[0.04] text-mist-200 transition hover:border-white/25 hover:text-white;
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-full
+    border border-white/[0.12] text-mist-200;
+    background-color: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+    transition: all 180ms ease;
+  }
+  .icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.22);
+    color: white;
   }
 
   /* ---------- forms ---------- */
+
   .label {
     @apply mb-2 block text-[13px] font-medium text-mist-200;
   }
 
   .input {
-    @apply h-11 w-full rounded-xl border border-white/10 bg-ink-950/70 px-3.5 text-sm text-white
-           placeholder:text-mist-500 transition
-           hover:border-white/20 focus:border-lime/60 focus:outline-none focus:ring-0
-           disabled:cursor-not-allowed disabled:opacity-50;
+    @apply h-11 w-full rounded-xl border border-white/[0.10] px-3.5 text-sm text-white
+    placeholder:text-mist-500 transition
+    focus:border-accent/60 focus:outline-none focus:ring-0
+    disabled:cursor-not-allowed disabled:opacity-50;
+    background-color: rgba(10, 14, 23, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
+    min-width: 0;
+  }
+  .input:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+  .input:focus {
+    background-color: rgba(10, 14, 23, 0.75);
+    box-shadow:
+      0 0 0 3px rgba(34, 211, 238, 0.15),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
   }
 
-  .input-lg {
-    @apply h-[52px] px-4 text-[15px];
-  }
+  .input-lg { @apply h-[52px] px-4 text-[15px]; }
 
   select.input {
     @apply cursor-pointer appearance-none bg-[length:12px] bg-[right_0.9rem_center] bg-no-repeat pr-10;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5l5-5' stroke='%23A8B0B8' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5 6 6.5l5-5' stroke='%23A8B3C7' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
   }
 
   textarea.input {
@@ -212,39 +296,71 @@
   }
 
   .checkbox {
-    @apply h-4 w-4 shrink-0 cursor-pointer rounded border-white/20 bg-ink-950 accent-lime;
+    @apply h-4 w-4 shrink-0 cursor-pointer rounded border-white/20 bg-ink-950 accent-accent;
   }
 
-  /* ---------- badges ---------- */
+  /* ---------- badges ----------
+   * Badges are small glass pills. The `bg-glass-panel` gives them the same
+   * top-edge fade as the larger surfaces.
+   */
+
   .badge {
     @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1
-           text-[11px] font-medium uppercase tracking-[0.09em];
+    text-[11px] font-medium uppercase tracking-[0.09em];
+    background-image: theme('backgroundImage.glass-panel');
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
   }
 
   .badge-neutral {
-    @apply border-white/12 bg-white/[0.05] text-mist-200;
+    @apply border-white/[0.12] text-mist-200;
+    background-color: rgba(255, 255, 255, 0.05);
   }
 
   /* ---------- tables ---------- */
+
   .table-shell {
-    @apply w-full overflow-hidden rounded-2xl border border-white/[0.07];
+    @apply w-full overflow-hidden rounded-2xl border border-white/[0.08];
+    background-color: rgba(14, 20, 32, 0.5);
+    background-image: theme('backgroundImage.glass-panel');
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    box-shadow: theme('boxShadow.glass');
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .table-shell > .table-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    min-width: 0;
+    -webkit-overflow-scrolling: touch;
   }
 
   .table {
-    @apply w-full border-collapse text-left text-sm;
+    @apply border-collapse text-left text-sm;
+    min-width: 720px;
+    width: 100%;
   }
 
   .table thead th {
-    @apply whitespace-nowrap border-b border-white/[0.07] bg-ink-850/70 px-4 py-3
-           font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-mist-400;
+    @apply whitespace-nowrap border-b border-white/[0.08] px-4 py-3
+    font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-mist-400;
+    background-color: rgba(19, 26, 42, 0.5);
   }
 
   .table tbody td {
     @apply border-b border-white/[0.04] px-4 py-3.5 align-middle text-mist-200;
+    white-space: nowrap;
   }
 
   .table tbody tr {
-    @apply transition-colors hover:bg-white/[0.025];
+    @apply transition-colors;
+  }
+  .table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.025);
   }
 
   .table tbody tr:last-child td {
@@ -252,53 +368,111 @@
   }
 
   /* ---------- typography helpers ---------- */
+
   .display-xl {
     @apply font-display text-[clamp(2.6rem,7vw,4.9rem)] font-semibold leading-[0.98] tracking-tightest;
   }
-
   .display-lg {
     @apply font-display text-[clamp(2rem,4.6vw,3.1rem)] font-semibold leading-[1.05] tracking-tightest;
   }
-
   .display-md {
     @apply font-display text-[clamp(1.45rem,2.6vw,2rem)] font-semibold leading-tight;
   }
-
   .lede {
     @apply text-[16.5px] leading-relaxed text-mist-300;
   }
-
   .meta {
     @apply font-mono text-[11px] uppercase tracking-[0.16em] text-mist-400;
   }
 
-  /* ---------- motion (opt-in, reveal-driven) ---------- */
+  /* ---------- glass hero panel ----------
+   * A dedicated class for the hero copy block on the landing page. It has a
+   * slightly stronger blur and a sheen animation so it reads as the most
+   * premium surface on the page.
+   */
+
+  .glass-hero {
+    @apply relative overflow-hidden rounded-3xl border border-white/[0.10];
+    background-color: rgba(14, 20, 32, 0.45);
+    background-image: theme('backgroundImage.glass-panel');
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    box-shadow: theme('boxShadow.glassFloat');
+  }
+
+  /* The sheen: a slow diagonal highlight that sweeps across the panel. */
+  .glass-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      120deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.06) 45%,
+      transparent 60%
+    );
+    animation: sheen 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* ---------- motion ---------- */
+
   .reveal {
     opacity: 0;
     transform: translateY(18px);
     will-change: opacity, transform;
   }
-
   .reveal-in {
     opacity: 1;
     transform: none;
   }
+
+  input[type='date'].input {
+    min-width: 0;
+    -webkit-appearance: none;
+    appearance: none;
+  }
 }
 
 @layer utilities {
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
 
-  .text-balance {
-    text-wrap: balance;
-  }
+  .text-balance { text-wrap: balance; }
 
   .mask-fade-b {
     mask-image: linear-gradient(to bottom, black 62%, transparent 100%);
   }
+  .mask-fade-r {
+    mask-image: linear-gradient(to right, black 82%, transparent 100%);
+  }
+
+  /* Helper for text that sits directly on the ambient background. */
+  .glass-text {
+    text-shadow: 0 2px 24px rgba(10, 14, 23, 0.8);
+  }
+
+  /* Grid children that contain long words or monospace strings (payment
+     references, booking references) must be allowed to shrink below their
+     intrinsic width. Without this, `grid-cols-2` on a narrow phone yields
+     horizontal overflow inside .surface (which has overflow:hidden and
+     therefore clips the second column). */
+  .grid-safe > * {
+    min-width: 0;
+  }
+
+  /* Same problem on flex rows: a flex child with long content pushes the row
+     wider than its container. */
+  .flex-safe > * {
+    min-width: 0;
+  }
+
+  /* Prevent the *booking/payment reference* spans from forcing width. */
+  .font-mono.break-anywhere {
+    overflow-wrap: anywhere;
+  }
+
 }

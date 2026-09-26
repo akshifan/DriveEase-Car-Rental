@@ -13,6 +13,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -137,5 +138,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiErrorResponse.of(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(), "INTERNAL_ERROR",
                 "Something went wrong on our side. Please try again.", request.getRequestURI()));
+    }
+
+
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<ApiErrorResponse> handleNotAcceptable(
+        HttpMediaTypeNotAcceptableException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(ApiErrorResponse.of(
+            HttpStatus.NOT_ACCEPTABLE.value(), "NOT_ACCEPTABLE",
+            "The requested response format is not available for this endpoint.",
+            request.getRequestURI()));
     }
 }

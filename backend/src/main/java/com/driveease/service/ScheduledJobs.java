@@ -62,11 +62,11 @@ public class ScheduledJobs {
                 .toList();
 
         dueTomorrow.forEach(booking -> notificationService.notifyUser(booking.getUser().getId(),
-                NotificationType.BOOKING_ACTIVE,
-                "Return reminder - " + booking.getBookingReference(),
-                "The " + booking.getVehicle().displayName() + " is due back tomorrow at "
-                        + booking.getReturnLocation() + ".",
-                "/bookings/" + booking.getBookingReference()));
+            NotificationType.BOOKING_ACTIVE,
+            "Return reminder - " + booking.getBookingReference(),
+            "The " + booking.getVehicle().displayName() + " is due back tomorrow at "
+                + booking.getReturnLocation() + ".",
+            "/bookings/" + booking.getId()));
 
         if (!dueTomorrow.isEmpty()) {
             log.info("Sent {} return reminder(s)", dueTomorrow.size());
@@ -86,12 +86,12 @@ public class ScheduledJobs {
 
         overdue.forEach(booking -> {
             log.warn("Overdue rental {} - vehicle {} was due on {}",
-                    booking.getBookingReference(), booking.getVehicle().getLicensePlate(), booking.getReturnDate());
+                booking.getBookingReference(), booking.getVehicle().getLicensePlate(), booking.getReturnDate());
             notificationService.notifyUser(booking.getUser().getId(), NotificationType.BOOKING_ACTIVE,
-                    "Your rental is overdue - " + booking.getBookingReference(),
-                    "The " + booking.getVehicle().displayName() + " was due back on " + booking.getReturnDate()
-                            + ". Please contact the pickup branch.",
-                    "/bookings/" + booking.getBookingReference());
+                "Your rental is overdue - " + booking.getBookingReference(),
+                "The " + booking.getVehicle().displayName() + " was due back on " + booking.getReturnDate()
+                    + ". Please contact the pickup branch.",
+                "/bookings/" + booking.getId());
         });
     }
 }

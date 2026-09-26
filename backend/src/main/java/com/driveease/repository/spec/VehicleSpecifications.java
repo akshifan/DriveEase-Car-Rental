@@ -87,10 +87,10 @@ public final class VehicleSpecifications {
             Subquery<Long> sub = query.subquery(Long.class);
             Root<Booking> booking = sub.from(Booking.class);
             sub.select(cb.literal(1L)).where(
-                    cb.equal(booking.get("vehicle").get("id"), root.get("id")),
-                    booking.get("status").in(List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.ACTIVE)),
-                    cb.lessThan(booking.get("pickupDate"), returnDate),
-                    cb.greaterThan(booking.get("returnDate"), pickupDate)
+                cb.equal(booking.get("vehicle").get("id"), root.get("id")),
+                booking.get("status").in(List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.ACTIVE)),
+                cb.lessThan(booking.get("pickupDate"), returnDate),
+                cb.greaterThan(booking.get("returnDate"), pickupDate)
             );
             return cb.not(cb.exists(sub));
         };
@@ -99,14 +99,24 @@ public final class VehicleSpecifications {
     /** Vehicle statuses that may be part of a bookable search result. */
     public static Specification<Vehicle> bookableOnly(boolean includeUnavailable) {
         return (root, query, cb) -> includeUnavailable
-                ? cb.conjunction()
-                : cb.equal(root.get("status"), VehicleStatus.AVAILABLE);
+            ? cb.conjunction()
+            : cb.equal(root.get("status"), VehicleStatus.AVAILABLE);
     }
 
     public static Specification<Vehicle> inCategories(Collection<VehicleCategory> categories) {
         return (root, query, cb) -> categories == null || categories.isEmpty()
-                ? cb.conjunction()
-                : root.get("category").in(categories);
+            ? cb.conjunction()
+            : root.get("category").in(categories);
+    }
+
+    /**
+     * Scopes a query to a single fleet partner's vehicles.
+     * A {@code null} owner means "no filter" (used by the public catalogue and by admins).
+     */
+    public static Specification<Vehicle> ownedBy(Long ownerId) {
+        return (root, query, cb) -> ownerId == null
+            ? cb.conjunction()
+            : cb.equal(root.get("owner").get("id"), ownerId);
     }
 
     private static boolean isBlank(String value) {

@@ -187,8 +187,18 @@ export const api = {
   patch: (path, body, options) => request(path, { ...options, method: 'PATCH', body }),
   put: (path, body, options) => request(path, { ...options, method: 'PUT', body }),
   delete: (path, options) => request(path, { ...options, method: 'DELETE' }),
-  /** Escape hatch for Blob/CSV downloads where we keep the raw Response. */
-  download: (path, options) => rawRequest(path, { ...options, method: 'GET', raw: true }),
+
+  /**
+   * Blob/CSV downloads keep the raw Response. Accept * /* so endpoints that
+  * declare `produces = "text/csv"` are not rejected by content negotiation.
+    */
+    download: (path, options = {}) =>
+  rawRequest(path, {
+    ...options,
+    method: 'GET',
+    headers: { Accept: '*/*', ...(options.headers || {}) },
+    raw: true,
+  }),
 };
 
 /** Convenience for CSV endpoints: triggers a real browser download. */
@@ -196,11 +206,7 @@ export async function downloadCsv(path, filename, params) {
   const response = await api.download(path, { params });
   if (!response.ok) {
     let payload = null;
-    try {
-      payload = await response.json();
-    } catch {
-      payload = null;
-    }
+    try { payload = await response.json(); } catch { /* not JSON */ }
     throw toApiError(response, payload);
   }
   const blob = await response.blob();
@@ -211,6 +217,5 @@ export async function downloadCsv(path, filename, params) {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  // Give the browser a tick to start the download before revoking the URL.
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

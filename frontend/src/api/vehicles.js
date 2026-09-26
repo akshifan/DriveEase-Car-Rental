@@ -81,3 +81,15 @@ export function exportFleetCsv({ status, category, location } = {}) {
 export function listFleetInventory({ location, search, page = 0, size = 15, sort = 'make,asc' } = {}) {
   return api.get('/fleet/vehicles', { params: { location, search, page, size, sort } });
 }
+
+/**
+ * Uploads a single vehicle image and returns its public URL.
+ * @param {File} file
+ * @returns {Promise<{url: string}>}
+ */
+export function uploadVehicleImage(file) {
+  const form = new FormData();
+  form.append('file', file);
+  // api.post sends FormData as-is (client.js skips JSON.stringify for FormData).
+  return api.post('/uploads/vehicle-image', form);
+}

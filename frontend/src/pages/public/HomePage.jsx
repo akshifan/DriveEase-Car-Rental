@@ -16,7 +16,7 @@ import { getCategories, searchVehicles } from '../../api/vehicles.js';
 import { CATEGORY_BLURBS, CATEGORY_LABELS } from '../../utils/constants.js';
 import { formatCurrency } from '../../utils/format.js';
 
-// The WebGL stage is heavy: it is split out so the hero markup paints first.
+// The WebGL stage is heavy: split out so the hero markup paints first.
 const DriveEaseScene = lazy(() => import('../../three/DriveEaseScene.jsx'));
 
 const STORY_PANELS = [
@@ -107,7 +107,9 @@ const TESTIMONIALS = [
 
 function StoryPanel({ panel, align = 'left' }) {
   return (
-    <div className="flex h-screen items-center">
+    // Shorter than a full viewport so the scroll-driven rotation completes
+    // faster and the car visibly moves as soon as you start scrolling.
+    <div className="flex min-h-[70vh] items-center py-16 sm:min-h-[80vh]">
       <div
         className={`max-w-[540px] ${align === 'left' ? 'mr-auto' : 'ml-auto'}`}
         data-story-panel
@@ -206,9 +208,10 @@ export default function HomePage() {
   return (
     <div>
       {/* ────────────────────────────────────────────────────────────── */}
-      {/* Hero + pinned 3D story                                        */}
+      {/* Hero + pinned 3D story                                          */}
       {/* ────────────────────────────────────────────────────────────── */}
       <section data-scene-track className="relative" ref={trackRef}>
+        {/* Sticky canvas: sits behind the content for the whole track. */}
         <div className="sticky top-0 h-screen w-full overflow-hidden">
           <Suspense
             fallback={
@@ -222,9 +225,10 @@ export default function HomePage() {
             <DriveEaseScene className="absolute inset-0 h-full w-full" />
           </Suspense>
 
-          {/* Scrims keep the type readable over the canvas on every viewport. */}
+          {/* Lighter left-to-right scrim so the car stays visible on the
+              right side of the frame while the text remains readable. */}
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/70 to-transparent lg:via-ink-950/40"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/60 to-transparent"
             aria-hidden="true"
           />
           <div
@@ -233,62 +237,70 @@ export default function HomePage() {
           />
         </div>
 
+        {/* Content sits on top of the sticky canvas. */}
         <div className="relative z-10 -mt-[100vh]">
-          {/* Panel 1 - the hero itself. min-h (not fixed h) so short viewports
-              never clip the top of the content under the fixed navbar. */}
+          {/* Panel 1 — the hero */}
           <div className="shell flex min-h-screen items-center pb-16 pt-28 sm:pt-24" ref={heroRef}>
-            <div className="max-w-[560px] pt-0 sm:pt-10">
-              <p className="eyebrow" data-hero-line>
-                Self-drive car rental · Karnataka
-              </p>
-              <h1 className="display-xl mt-5">
-                <span className="block overflow-hidden">
-                  <span className="block" data-hero-line>
-                    Rent the road.
+            <div className="grid w-full gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
+              {/* Left column — the copy */}
+              <div className="max-w-[560px] pt-0 sm:pt-10">
+                <p className="eyebrow" data-hero-line>
+                  Self-drive car rental · Karnataka
+                </p>
+                <h1 className="display-xl mt-5">
+                  <span className="block overflow-hidden">
+                    <span className="block" data-hero-line>
+                      Rent the road.
+                    </span>
                   </span>
-                </span>
-                <span className="block overflow-hidden">
-                  <span className="block text-mist-400" data-hero-line>
-                    Own the journey.
+                  <span className="block overflow-hidden">
+                    <span className="block text-mist-400" data-hero-line>
+                      Own the journey.
+                    </span>
                   </span>
-                </span>
-              </h1>
-              <p className="lede mt-6 max-w-[460px]" data-hero-line>
-                Premium cars, transparent pricing and availability you can trust. From a city hatch
-                for the weekend to a seven-seat van for the whole family.
-              </p>
+                </h1>
+                <p className="lede mt-6 max-w-[460px]" data-hero-line>
+                  Premium cars, transparent pricing and availability you can trust. From a city hatch
+                  for the weekend to a seven-seat van for the whole family.
+                </p>
 
-              <div className="mt-8 flex flex-wrap items-center gap-3" data-hero-cta>
-                <Button to="/fleet" size="lg" iconRight="arrowRight">
-                  Browse the fleet
-                </Button>
-                <Button to="/#how-it-works" variant="ghost" size="lg" icon="info">
-                  How it works
-                </Button>
+                <div className="mt-8 flex flex-wrap items-center gap-3" data-hero-cta>
+                  <Button to="/fleet" size="lg" iconRight="arrowRight">
+                    Browse the fleet
+                  </Button>
+                  <Button to="/#how-it-works" variant="ghost" size="lg" icon="info">
+                    How it works
+                  </Button>
+                </div>
+
+                <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-4" data-hero-stat>
+                  <div>
+                    <dt className="meta">Fleet in service</dt>
+                    <dd className="mt-1 font-display text-[22px] font-semibold text-white">40+</dd>
+                  </div>
+                  <div>
+                    <dt className="meta">Cities</dt>
+                    <dd className="mt-1 font-display text-[22px] font-semibold text-white">
+                      Mangaluru · Bengaluru
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="meta">Deposit refund</dt>
+                    <dd className="mt-1 font-display text-[22px] font-semibold text-white">100%</dd>
+                  </div>
+                </dl>
+
+                <div className="mt-9" data-hero-cta>
+                  <QuickSearch />
+                </div>
               </div>
 
-              <dl className="mt-10 flex flex-wrap gap-x-10 gap-y-4" data-hero-stat>
-                <div>
-                  <dt className="meta">Fleet in service</dt>
-                  <dd className="mt-1 font-display text-[22px] font-semibold text-white">40+</dd>
-                </div>
-                <div>
-                  <dt className="meta">Cities</dt>
-                  <dd className="mt-1 font-display text-[22px] font-semibold text-white">
-                    Mangaluru · Bengaluru
-                  </dd>
-                </div>
-                <div>
-                  <dt className="meta">Deposit refund</dt>
-                  <dd className="mt-1 font-display text-[22px] font-semibold text-white">100%</dd>
-                </div>
-              </dl>
-
-              <div className="mt-9" data-hero-cta>
-                <QuickSearch />
-              </div>
+              {/* Right column — intentionally empty; the 3D car renders
+                  behind this column thanks to the sticky canvas above. */}
+              <div className="hidden lg:block" aria-hidden="true" />
             </div>
 
+            {/* Scroll hint */}
             <div
               className="pointer-events-none absolute bottom-8 left-1/2 hidden -translate-x-1/2 items-center gap-3 text-mist-500 lg:flex"
               data-hero-scroll-hint
@@ -298,7 +310,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Panels 2-3-4 - the pinned story */}
+          {/* Panels 2 & 3 — the pinned story */}
           {STORY_PANELS.map((panel, index) => (
             <div className="shell" key={panel.index}>
               <StoryPanel panel={panel} align={index % 2 === 0 ? 'left' : 'left'} />
@@ -308,7 +320,7 @@ export default function HomePage() {
       </section>
 
       {/* ────────────────────────────────────────────────────────────── */}
-      {/* Statistics                                                    */}
+      {/* Statistics                                                     */}
       {/* ────────────────────────────────────────────────────────────── */}
       <section className="section border-t border-white/[0.06] bg-ink-900/40" ref={statsRef}>
         <div className="shell grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
@@ -335,7 +347,7 @@ export default function HomePage() {
       </section>
 
       {/* ────────────────────────────────────────────────────────────── */}
-      {/* Categories                                                    */}
+      {/* Categories                                                     */}
       {/* ────────────────────────────────────────────────────────────── */}
       <section className="section">
         <div className="shell">
@@ -353,49 +365,49 @@ export default function HomePage() {
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {categories === null
               ? Array.from({ length: 5 }).map((_, index) => (
-                  <Skeleton key={index} className="h-[186px]" />
-                ))
+                <Skeleton key={index} className="h-[186px]" />
+              ))
               : categories.map((category) => (
-                  <Link
-                    key={category.category}
-                    to={`/fleet?category=${category.category}`}
-                    data-reveal
-                    className="group surface relative overflow-hidden p-6 transition duration-300 hover:-translate-y-1 hover:border-lime/25"
-                  >
-                    <div className="flex items-start justify-between">
+                <Link
+                  key={category.category}
+                  to={`/fleet?category=${category.category}`}
+                  data-reveal
+                  className="group surface relative overflow-hidden p-6 transition duration-300 hover:-translate-y-1 hover:border-lime/25"
+                >
+                  <div className="flex items-start justify-between">
                       <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-lime">
                         <Icon name="car" size={20} />
                       </span>
-                      <Icon
-                        name="arrowUpRight"
-                        size={18}
-                        className="text-mist-500 transition group-hover:text-lime"
-                      />
-                    </div>
-                    <h3 className="mt-6 font-display text-[19px] font-semibold text-white">
-                      {CATEGORY_LABELS[category.category] || category.label}
-                    </h3>
-                    <p className="mt-2 text-[13.5px] leading-relaxed text-mist-400">
-                      {CATEGORY_BLURBS[category.category]}
-                    </p>
-                    <div className="mt-5 flex items-baseline justify-between border-t border-white/[0.06] pt-4">
-                      <p className="text-[13px] text-mist-300">
-                        from{' '}
-                        <span className="font-medium text-white">
+                    <Icon
+                      name="arrowUpRight"
+                      size={18}
+                      className="text-mist-500 transition group-hover:text-lime"
+                    />
+                  </div>
+                  <h3 className="mt-6 font-display text-[19px] font-semibold text-white">
+                    {CATEGORY_LABELS[category.category] || category.label}
+                  </h3>
+                  <p className="mt-2 text-[13.5px] leading-relaxed text-mist-400">
+                    {CATEGORY_BLURBS[category.category]}
+                  </p>
+                  <div className="mt-5 flex items-baseline justify-between border-t border-white/[0.06] pt-4">
+                    <p className="text-[13px] text-mist-300">
+                      from{' '}
+                      <span className="font-medium text-white">
                           {formatCurrency(category.startingFrom)}
                         </span>
-                        <span className="text-mist-500">/day</span>
-                      </p>
-                      <p className="meta">{category.vehicleCount} cars</p>
-                    </div>
-                  </Link>
-                ))}
+                      <span className="text-mist-500">/day</span>
+                    </p>
+                    <p className="meta">{category.vehicleCount} cars</p>
+                  </div>
+                </Link>
+              ))}
           </div>
         </div>
       </section>
 
       {/* ────────────────────────────────────────────────────────────── */}
-      {/* Featured                                                      */}
+      {/* Featured                                                       */}
       {/* ────────────────────────────────────────────────────────────── */}
       <section className="section border-y border-white/[0.06] bg-ink-900/30">
         <div className="shell">
@@ -407,15 +419,15 @@ export default function HomePage() {
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {featured === null
               ? Array.from({ length: 3 }).map((_, index) => (
-                  <Skeleton key={index} className="h-[380px]" />
-                ))
+                <Skeleton key={index} className="h-[380px]" />
+              ))
               : featured.map((vehicle) => <VehicleCard key={vehicle.id} vehicle={vehicle} />)}
           </div>
         </div>
       </section>
 
       {/* ────────────────────────────────────────────────────────────── */}
-      {/* How it works                                                  */}
+      {/* How it works                                                   */}
       {/* ────────────────────────────────────────────────────────────── */}
       <section className="section" id="how-it-works">
         <div className="shell">
@@ -447,7 +459,7 @@ export default function HomePage() {
       </section>
 
       {/* ────────────────────────────────────────────────────────────── */}
-      {/* Marquee                                                       */}
+      {/* Marquee                                                        */}
       {/* ────────────────────────────────────────────────────────────── */}
       <section className="overflow-hidden border-y border-white/[0.06] py-8" ref={marqueeRef}>
         <div className="flex w-max items-center gap-12" data-marquee-track>
@@ -477,7 +489,7 @@ export default function HomePage() {
       </section>
 
       {/* ────────────────────────────────────────────────────────────── */}
-      {/* Why DriveEase                                                 */}
+      {/* Why DriveEase                                                  */}
       {/* ────────────────────────────────────────────────────────────── */}
       <section className="section" id="insights">
         <div className="shell grid gap-14 lg:grid-cols-[0.9fr_1.1fr]">
@@ -520,17 +532,22 @@ export default function HomePage() {
       </section>
 
       {/* ────────────────────────────────────────────────────────────── */}
-      {/* Testimonials                                                  */}
+      {/* Testimonials                                                   */}
       {/* ────────────────────────────────────────────────────────────── */}
       <section className="section border-t border-white/[0.06] bg-ink-900/30">
         <div className="shell">
           <SectionHeading eyebrow="From the road" title="What renters say afterwards" />
           <div className="mt-12 grid gap-6 lg:grid-cols-3">
             {TESTIMONIALS.map((testimonial, index) => (
-              <Card key={testimonial.name} className="flex h-full flex-col p-7" data-reveal data-reveal-delay={index * 80}>
+              <Card
+                key={testimonial.name}
+                className="flex h-full flex-col p-7"
+                data-reveal
+                data-reveal-delay={index * 80}
+              >
                 <Rating value={5} size={13} />
                 <blockquote className="mt-5 flex-1 text-[14.5px] leading-relaxed text-mist-200">
-                  “{testimonial.quote}”
+                  "{testimonial.quote}"
                 </blockquote>
                 <footer className="mt-6 border-t border-white/[0.06] pt-4">
                   <p className="text-[13.5px] font-medium text-white">{testimonial.name}</p>
@@ -543,7 +560,7 @@ export default function HomePage() {
       </section>
 
       {/* ────────────────────────────────────────────────────────────── */}
-      {/* Outro                                                         */}
+      {/* Outro                                                          */}
       {/* ────────────────────────────────────────────────────────────── */}
       <section className="section" data-outro ref={outroRef}>
         <div className="shell">

@@ -96,7 +96,6 @@ export const PAYMENT_STATUS_LABELS = {
   REFUNDED: 'Refunded',
 };
 
-/** Badge classes per status - keeps colour decisions in exactly one place. */
 export const STATUS_TONES = {
   PENDING: 'border-signal-warning/35 bg-signal-warning/10 text-signal-warning',
   CONFIRMED: 'border-signal-info/35 bg-signal-info/10 text-signal-info',
@@ -112,13 +111,8 @@ export const STATUS_TONES = {
   REFUNDED: 'border-ice/35 bg-ice/10 text-ice',
 };
 
-/** Orders used by the staff workflow timelines. */
 export const BOOKING_FLOW = ['PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED'];
 
-/**
- * Groupings the reports endpoint accepts. It rejects anything outside this set
- * with 422 INVALID_GROUP_BY, so the list lives beside the API contract.
- */
 export const REPORT_GROUPINGS = [
   { value: 'day', label: 'Daily' },
   { value: 'week', label: 'Weekly' },
@@ -156,11 +150,45 @@ export function canModerate(user) {
   return isAdmin(user);
 }
 
-/** Landing route for a signed-in user, by role. */
+/**
+ * Landing route for a signed-in user, by role.
+ * This is the page we send them to on successful login — the "home" for the role.
+ */
 export function landingRouteFor(user) {
   if (!user) return '/';
   if (user.role === ROLES.ADMIN) return '/admin';
-  // `/fleet` is the public catalogue - staff land in the operations console.
   if (user.role === ROLES.FLEET_MANAGER) return '/console';
   return '/dashboard';
+}
+
+/**
+ * URL prefixes each role is allowed to visit.
+ *
+ * - CUSTOMER: only their own portal.
+ * - FLEET_MANAGER: only the fleet console.
+ * - ADMIN: the admin console, the fleet console, and the customer portal.
+ *   The customer portal entry is intentional: the admin uses the same booking
+ *   flow a customer would (to place bookings, test the customer experience
+ *   or handle edge cases on a caller's behalf).
+ */
+export const ROLE_ROUTE_PREFIXES = {
+  [ROLES.CUSTOMER]: ['/dashboard', '/bookings', '/payments', '/profile', '/checkout', '/notifications'],
+  [ROLES.FLEET_MANAGER]: ['/console', '/profile', '/notifications'],
+  [ROLES.ADMIN]: [
+    '/admin',
+    '/console',
+    '/dashboard',
+    '/bookings',
+    '/payments',
+    '/profile',
+    '/checkout',
+    '/notifications',
+  ],
+};
+
+export function isRouteAllowedForRole(path, role) {
+  if (!path || !role) return false;
+  const clean = String(path).split('?')[0].split('#')[0];
+  const prefixes = ROLE_ROUTE_PREFIXES[role] || [];
+  return prefixes.some((prefix) => clean === prefix || clean.startsWith(prefix + '/'));
 }

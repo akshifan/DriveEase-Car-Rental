@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { configureAuthBridge, setAccessToken } from '../api/client.js';
 import * as authApi from '../api/auth.js';
+import { landingRouteFor } from '../utils/constants.js';
 
 /**
  * Session state for the whole app.
@@ -11,11 +12,36 @@ import * as authApi from '../api/auth.js';
  */
 const AuthContext = createContext(null);
 
+/**
+ * Every storage key that is user-specific.
+ * On logout all of these must be cleared so the next authenticated user never
+ * inherits the previous user's view. Non-user keys (theme, layout prefs) are
+ * deliberately NOT in this list.
+ */
+const USER_SCOPED_KEYS = [
+  'driveease.search-draft',
+  'driveease.last-route',
+  'driveease.last-path',
+  'driveease.selected-vehicle',
+  'driveease.booking-draft',
+  'driveease.checkout-draft',
+];
+
+function clearUserScopedStorage() {
+  try {
+    for (const key of USER_SCOPED_KEYS) {
+      sessionStorage.removeItem(key);
+      localStorage.removeItem(key);
+    }
+  } catch {
+    /* private mode / quota - nothing else to do */
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [status, setStatus] = useState('restoring'); // restoring | anonymous | authenticated
   const mounted = useRef(true);
-  // Mirrors `user` so the refresh callback never closes over a stale value.
   const userRef = useRef(null);
 
   useEffect(() => {
@@ -35,13 +61,9 @@ export function AuthProvider({ children }) {
       setUser(payload.user);
       setStatus('authenticated');
     } else if (!payload?.accessToken) {
-      // Nothing arrived at all - treat as signed out.
       setUser(null);
       setStatus('anonymous');
     }
-    // Tokens-only payloads (POST /auth/refresh carries no profile) leave the
-    // user/status untouched: refreshSession() has already resolved the profile
-    // via GET /auth/session and clobbering it here would sign the user out.
   }, []);
 
   const clearSession = useCallback(() => {
@@ -50,17 +72,6 @@ export function AuthProvider({ children }) {
     setStatus('anonymous');
   }, []);
 
-  /**
-   * Called by the API client when an access token expired, and once on cold
-   * start. The response carries a new access token only, so the profile comes
-   * from GET /auth/session (skipped when we already hold it).
-   *
-   * Single-flight: the refresh cookie ROTATES on every call and the backend
-   * revokes a token family when a rotated token is replayed, so two concurrent
-   * refreshes (React StrictMode double-mounts this effect in dev, and a 401
-   * retry can collide with cold start) would revoke the session they are
-   * trying to restore. Concurrent callers share one in-flight promise.
-   */
   const refreshInFlight = useRef(null);
 
   const refreshSession = useCallback(() => {
@@ -88,17 +99,10 @@ export function AuthProvider({ children }) {
     return refreshInFlight.current;
   }, []);
 
-
   useEffect(() => {
     configureAuthBridge({ refresh: refreshSession, onLost: clearSession });
   }, [refreshSession, clearSession]);
 
-  /**
-   * Cold start: an access token only lives in memory, so ask the API whether the
-   * refresh cookie still represents a valid session. Goes through the
-   * single-flight refreshSession so StrictMode's double-mounted effect (and any
-   * colliding 401 retry) performs exactly one rotating refresh call.
-   */
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -112,7 +116,6 @@ export function AuthProvider({ children }) {
     return () => {
       cancelled = true;
     };
-    // Runs once on mount by design.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -134,15 +137,30 @@ export function AuthProvider({ children }) {
     [applySession],
   );
 
+  /**
+   * Sign out.
+   *
+   * Order matters:
+   *   1. Revoke the refresh token server-side (best effort).
+   *   2. Clear the in-memory access token so no further API call carries it.
+   *   3. Clear the user object and flip status to anonymous.
+   *   4. Wipe every user-scoped storage key so a subsequent login on the same
+   *      browser starts with a clean slate.
+   *   5. Let the caller navigate; a hard reload is not required because
+   *      RequireAuth bounces any authenticated-view access once status flips.
+   */
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
     } catch {
       // A failed sign-out must never trap the user in a signed-in shell.
     } finally {
-      clearSession();
+      setAccessToken(null);
+      setUser(null);
+      setStatus('anonymous');
+      clearUserScopedStorage();
     }
-  }, [clearSession]);
+  }, []);
 
   const refreshProfile = useCallback(async () => {
     if (!user) return null;
@@ -159,6 +177,7 @@ export function AuthProvider({ children }) {
       isRestoring: status === 'restoring',
       isStaff: Boolean(user) && user.role !== 'CUSTOMER',
       isAdmin: Boolean(user) && user.role === 'ADMIN',
+      landingRoute: landingRouteFor(user),
       login,
       register,
       logout,

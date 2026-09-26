@@ -14,15 +14,38 @@ import {
 } from '../../components/ui/primitives.jsx';
 import PricingBreakdown from '../../components/booking/PricingBreakdown.jsx';
 import StatusTimeline from '../../components/booking/StatusTimeline.jsx';
-import { cancelBooking, getBooking, getPaymentsForBooking, submitReview } from '../../api/bookings.js';
+import {
+  cancelBooking,
+  getBooking,
+  getBookingByReference,
+  getPaymentsForBooking,
+  submitReview,
+} from '../../api/bookings.js';
 import Modal, { ConfirmDialog } from '../../components/ui/Modal.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { ApiError } from '../../api/client.js';
-import { formatCurrency, formatDate, formatDateTime, formatRelativeDays, pluralise } from '../../utils/format.js';
+import {
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  formatRelativeDays,
+  pluralise,
+} from '../../utils/format.js';
+
+/** A booking reference looks like DE-20260928-0545; a numeric id is just digits. */
+function looksLikeNumericId(value) {
+  return /^\d+$/.test(String(value || ''));
+}
 
 export default function BookingDetailPage() {
-  const { bookingId } = useParams();
+  const params = useParams();
+  const bookingKey = params.bookingId;
   const toast = useToast();
+
+  // The URL segment can be either a numeric id or a business reference.
+  const [resolvedId, setResolvedId] = useState(
+    looksLikeNumericId(bookingKey) ? bookingKey : null,
+  );
 
   const [booking, setBooking] = useState(null);
   const [payments, setPayments] = useState([]);
@@ -41,30 +64,42 @@ export default function BookingDetailPage() {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    Promise.all([
-      getBooking(bookingId),
-      getPaymentsForBooking(bookingId).catch(() => []),
-    ])
-      .then(([detail, paymentList]) => {
+    if (!bookingKey) {
+      setError(new ApiError({ message: 'Booking not found.' }));
+      setLoading(false);
+      return;
+    }
+
+    const fetchBooking = looksLikeNumericId(bookingKey)
+      ? getBooking(bookingKey)
+      : getBookingByReference(bookingKey);
+
+    fetchBooking
+      .then((detail) => {
         setBooking(detail);
+        setResolvedId(detail.id);
+        return getPaymentsForBooking(detail.id).catch(() => []);
+      })
+      .then((paymentList) => {
         setPayments(Array.isArray(paymentList) ? paymentList : paymentList?.content || []);
       })
       .catch((failure) =>
         setError(failure instanceof ApiError ? failure : new ApiError({ message: failure.message })),
       )
       .finally(() => setLoading(false));
-  }, [bookingId]);
+  }, [bookingKey]);
 
   useEffect(load, [load]);
 
   const confirmCancel = async () => {
+    if (!resolvedId) return;
     if (!cancelReason.trim()) {
       toast.warn('Tell us why', 'A short reason helps the fleet team plan.');
       return;
     }
     setCancelling(true);
     try {
-      const updated = await cancelBooking(bookingId, cancelReason.trim());
+      const updated = await cancelBooking(resolvedId, cancelReason.trim());
       setBooking(updated);
       setCancelOpen(false);
       setCancelReason('');
@@ -86,11 +121,12 @@ export default function BookingDetailPage() {
 
   const saveReview = async (event) => {
     event.preventDefault();
+    if (!resolvedId) return;
     setSavingReview(true);
     setReviewError('');
     try {
       await submitReview({
-        bookingId: Number(bookingId),
+        bookingId: Number(resolvedId),
         rating: review.rating,
         title: review.title || undefined,
         comment: review.comment || undefined,
@@ -123,6 +159,10 @@ export default function BookingDetailPage() {
   }
 
   if (error || !booking) return <ErrorState error={error} onRetry={load} />;
+
+  // The detail DTO exposes `status` and `review` (nullable). It does not expose
+  // the list-level `reviewable` / `reviewed` flags.
+  const canReview = booking.status === 'COMPLETED' && !booking.review;
 
   const paidTotal = payments
     .filter((payment) => payment.status === 'SUCCESS' || payment.status === 'REFUNDED')
@@ -177,12 +217,12 @@ export default function BookingDetailPage() {
                 Cancel booking
               </Button>
             )}
-            {booking.reviewable && !booking.reviewed && (
+            {canReview && (
               <Button variant="ghost" icon="star" onClick={() => setReviewOpen(true)}>
                 Write a review
               </Button>
             )}
-            {booking.reviewed && (
+            {booking.review && (
               <span className="inline-flex items-center gap-2 rounded-full border border-lime/30 bg-lime/[0.08] px-4 py-2 text-[12.5px] text-lime">
                 <Icon name="check" size={14} /> Reviewed
               </span>
@@ -193,7 +233,6 @@ export default function BookingDetailPage() {
 
       <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
         <div className="space-y-8">
-          {/* Timeline */}
           <section>
             <h2 className="font-display text-[16px] font-semibold text-white">Status</h2>
             <Card className="mt-4 p-6">
@@ -201,7 +240,6 @@ export default function BookingDetailPage() {
             </Card>
           </section>
 
-          {/* Trip log */}
           {(booking.actualPickupDate || booking.mileageOut || booking.notes) && (
             <section>
               <h2 className="font-display text-[16px] font-semibold text-white">Handover log</h2>
@@ -237,7 +275,6 @@ export default function BookingDetailPage() {
             </section>
           )}
 
-          {/* Payments */}
           <section>
             <h2 className="font-display text-[16px] font-semibold text-white">Payments</h2>
             <Card className="mt-4 px-5 py-2">
@@ -302,7 +339,6 @@ export default function BookingDetailPage() {
           </section>
         </div>
 
-        {/* Summary */}
         <aside className="space-y-6 lg:sticky lg:top-[96px] lg:self-start">
           <Card className="p-6">
             <h2 className="font-display text-[16px] font-semibold text-white">Charges</h2>

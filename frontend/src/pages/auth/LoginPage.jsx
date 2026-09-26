@@ -5,14 +5,23 @@ import Icon from '../../components/ui/Icon.jsx';
 import { Button, Checkbox, Input } from '../../components/ui/primitives.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
-import { ApiError } from '../../api/client.js';
-import { landingRouteFor } from '../../utils/constants.js';
+import { api, ApiError } from '../../api/client.js';
+import { isRouteAllowedForRole, landingRouteFor } from '../../utils/constants.js';
 
-const DEMO_ACCOUNTS = [
-  { label: 'Customer', email: 'customer@driveease.app', role: 'Books and reviews cars' },
-  { label: 'Fleet manager', email: 'fleet@driveease.app', role: 'Runs the fleet console' },
-  { label: 'Admin', email: 'admin@driveease.app', role: 'Manages users and reports' },
-];
+/**
+ * Resolves the landing page for a freshly authenticated user.
+ *
+ * Rule: a `from` path is honoured ONLY if the user's role is allowed to visit
+ * it. Otherwise the user is sent to their role dashboard. This is what stops a
+ * Customer's last page (e.g. /payments) from becoming the landing page for a
+ * Fleet Manager who logs in on the same browser.
+ */
+function resolveLanding(fromPath, role) {
+  if (fromPath && isRouteAllowedForRole(fromPath, role)) {
+    return fromPath;
+  }
+  return landingRouteFor({ role });
+}
 
 export default function LoginPage() {
   const { login, isAuthenticated, user } = useAuth();
@@ -27,11 +36,35 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const redirectTo = location.state?.from || null;
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
+  const [resending, setResending] = useState(false);
 
+  // Read once and never re-use after this render.
+  const fromPath = location.state?.from || null;
+
+  // If already authenticated, always go to the role dashboard - never to a
+  // stale `from` path that might belong to a previous user.
   useEffect(() => {
-    if (isAuthenticated) navigate(redirectTo || landingRouteFor(user), { replace: true });
-  }, [isAuthenticated, navigate, redirectTo, user]);
+    if (isAuthenticated && user) {
+      navigate(landingRouteFor(user), { replace: true, state: null });
+    }
+  }, [isAuthenticated, navigate, user]);
+
+  const resendVerification = async () => {
+    setResending(true);
+    try {
+      await api.post(
+        '/auth/resend-fleet-verification',
+        { email: unverifiedEmail },
+        { skipRefresh: true },
+      );
+      toast.success('If that email is registered, a new verification link is on its way.');
+    } catch (failure) {
+      toast.error('Could not send the link', failure.message);
+    } finally {
+      setResending(false);
+    }
+  };
 
   const submit = async (event) => {
     event.preventDefault();
@@ -46,15 +79,21 @@ export default function LoginPage() {
     try {
       const session = await login({ email: form.email.trim(), password: form.password });
       toast.success(`Welcome back, ${session.user?.firstName || 'driver'}`);
-      navigate(redirectTo || landingRouteFor(session.user), { replace: true });
+      const destination = resolveLanding(fromPath, session.user.role);
+      // state: null clears the "from" so the next user to hit /login starts
+      // with an empty state.
+      navigate(destination, { replace: true, state: null });
     } catch (failure) {
       const error = failure instanceof ApiError ? failure : new ApiError({ message: failure.message });
       setErrors(error.fieldErrors || {});
       setFormError(
         error.code === 'ACCOUNT_DISABLED'
           ? 'This account has been deactivated. Contact support if that is unexpected.'
-          : error.message,
+          : error.code === 'EMAIL_NOT_VERIFIED'
+            ? 'Verify your email first. Check your inbox for the link we sent at signup — the "Resend verification" button below will send a fresh one.'
+            : error.message,
       );
+      setUnverifiedEmail(error.code === 'EMAIL_NOT_VERIFIED' ? form.email.trim().toLowerCase() : '');
     } finally {
       setSubmitting(false);
     }
@@ -116,6 +155,19 @@ export default function LoginPage() {
           }
         />
 
+        {unverifiedEmail && (
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            icon="mail"
+            loading={resending}
+            onClick={resendVerification}
+          >
+            Resend verification email
+          </Button>
+        )}
+
         <div className="flex items-center justify-between gap-4">
           <Checkbox
             label="Keep me signed in"
@@ -131,30 +183,6 @@ export default function LoginPage() {
           Sign in
         </Button>
       </form>
-
-      <div className="mt-9 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4">
-        <p className="meta">Demo accounts</p>
-        <ul className="mt-3 space-y-2">
-          {DEMO_ACCOUNTS.map((account) => (
-            <li key={account.email}>
-              <button
-                type="button"
-                onClick={() => setForm({ email: account.email, password: 'Passw0rd!' })}
-                className="flex w-full items-center justify-between gap-4 rounded-lg px-2.5 py-2 text-left transition hover:bg-white/[0.05]"
-              >
-                <span>
-                  <span className="block text-[13px] text-mist-100">{account.email}</span>
-                  <span className="block text-[11.5px] text-mist-500">{account.role}</span>
-                </span>
-                <span className="badge border-white/12 bg-white/[0.04] text-mist-300">{account.label}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 text-[11.5px] text-mist-500">
-          Password for every demo account: <span className="font-mono text-mist-300">Passw0rd!</span>
-        </p>
-      </div>
     </AuthShell>
   );
 }

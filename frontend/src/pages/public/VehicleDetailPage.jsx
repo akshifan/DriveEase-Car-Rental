@@ -50,7 +50,7 @@ function SpecTile({ icon, label, value }) {
 export default function VehicleDetailPage() {
   const { vehicleId } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { draft, updateDraft } = useBookingDraft();
   const toast = useToast();
 
@@ -165,7 +165,8 @@ export default function VehicleDetailPage() {
         returnLocation: vehicle.location,
       });
       updateDraft({ pickupDate: dates.pickupDate, returnDate: dates.returnDate });
-      toast.success('Car held for you', 'Complete the payment step to confirm the booking.');
+      // Go straight to checkout: the customer hasn't paid yet, so the booking is
+      // still PENDING and no money has moved.
       navigate(`/checkout/${created.id}`);
     } catch (failure) {
       const apiError = failure instanceof ApiError ? failure : new ApiError({ message: failure.message });
@@ -434,7 +435,7 @@ export default function VehicleDetailPage() {
               Nothing is charged until you confirm the payment step.
             </p>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <Field label="Pick-up" htmlFor="detail-pickup">
                 <input
                   id="detail-pickup"
@@ -504,20 +505,36 @@ export default function VehicleDetailPage() {
               )}
             </div>
 
-            <Button
-              className="mt-5 w-full"
-              size="lg"
-              onClick={bookNow}
-              loading={booking}
-              disabled={!quote || Boolean(quoteError) || !vehicle.bookable}
-              iconRight={quote && vehicle.bookable ? 'arrowRight' : undefined}
-            >
-              {!vehicle.bookable
-                ? vehicle.unavailableReason || 'Currently unavailable'
-                : isAuthenticated
-                  ? 'Reserve and pay'
-                  : 'Sign in to reserve'}
-            </Button>
+            {/* Block fleet managers from booking - fleet partners provide the fleet, they don't rent from it. */}
+            {isAuthenticated && user?.role === 'FLEET_MANAGER' ? (
+              <div className="mt-5 surface-inset flex items-start gap-3 p-4">
+                <Icon name="info" size={17} className="mt-0.5 shrink-0 text-ice" />
+                <div>
+                  <p className="text-[13.5px] font-medium text-white">
+                    You are signed in as a fleet partner.
+                  </p>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-mist-400">
+                    Fleet partners manage vehicles; booking is a customer action. Switch to a
+                    customer account to rent a car.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <Button
+                className="mt-5 w-full"
+                size="lg"
+                onClick={bookNow}
+                loading={booking}
+                disabled={!quote || Boolean(quoteError) || !vehicle.bookable}
+                iconRight={quote && vehicle.bookable ? 'arrowRight' : undefined}
+              >
+                {!vehicle.bookable
+                  ? vehicle.unavailableReason || 'Currently unavailable'
+                  : isAuthenticated
+                    ? 'Reserve now — pay at checkout'
+                    : 'Sign in to reserve'}
+              </Button>
+            )}
 
             <ul className="mt-5 space-y-2">
               {[

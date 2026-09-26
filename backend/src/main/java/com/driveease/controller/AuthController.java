@@ -1,6 +1,7 @@
 package com.driveease.controller;
 
 import com.driveease.dto.auth.*;
+import com.driveease.dto.common.MessageResponse;
 import com.driveease.dto.user.UserResponse;
 import com.driveease.security.RefreshCookieService;
 import com.driveease.security.SecurityUtils;
@@ -144,4 +145,44 @@ public class AuthController {
         }
         return request.getRemoteAddr();
     }
+
+    @PostMapping("/register-fleet")
+    @SecurityRequirements
+    @Operation(summary = "Self-service fleet partner registration",
+        description = """
+                Creates a FLEET_MANAGER account immediately. The account cannot sign in until the
+                partner clicks the verification link emailed to them.
+                """)
+    public ResponseEntity<MessageResponse> registerFleet(@Valid @RequestBody RegisterFleetRequest request) {
+        authService.registerFleet(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new MessageResponse(
+            "Thanks! Check your inbox to verify your email and activate your fleet account."));
+    }
+
+    @PostMapping("/verify-fleet-email")
+    @SecurityRequirements
+    @Operation(summary = "Verify a fleet partner's email and sign them in",
+        description = "Sets the refresh cookie and returns an access token so the frontend "
+            + "can drop the user straight into the fleet console.")
+    public AuthResponse verifyFleetEmail(@Valid @RequestBody VerifyEmailRequest request,
+                                         HttpServletRequest httpRequest,
+                                         HttpServletResponse httpResponse) {
+        AuthService.AuthResult result = authService.verifyFleetEmail(
+            request.token(), httpRequest.getHeader("User-Agent"), clientIp(httpRequest));
+        cookieService.write(httpResponse, result.refreshToken(),
+            jwtProperties.getRefreshTokenTtlSeconds());
+        return new AuthResponse(result.accessToken(), result.expiresIn(), result.user());
+    }
+
+    @PostMapping("/resend-fleet-verification")
+    @SecurityRequirements
+    @Operation(summary = "Resend the fleet verification email",
+        description = "Always answers 202 so the endpoint cannot be used to enumerate accounts.")
+    public ResponseEntity<MessageResponse> resendFleetVerification(
+        @Valid @RequestBody ResendVerificationRequest request) {
+        authService.resendFleetVerification(request.email());
+        return ResponseEntity.accepted().body(new MessageResponse(
+            "If that email is registered, a new verification link is on its way."));
+    }
+
 }

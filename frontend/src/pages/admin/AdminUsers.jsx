@@ -146,7 +146,7 @@ export default function AdminUsers() {
   const users = result?.content || [];
 
   return (
-    <div className="space-y-7">
+    <div className="min-w-0 space-y-7 pt-2">
       <header className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="eyebrow">Access</p>
@@ -163,7 +163,7 @@ export default function AdminUsers() {
 
       <div className="surface flex flex-wrap items-end gap-4 p-5">
         <Input
-          className="min-w-[240px] flex-1"
+          className="flex-1"
           label="Search"
           placeholder="Name, email or phone"
           prefixIcon="search"
@@ -178,8 +178,17 @@ export default function AdminUsers() {
         </p>
       </div>
 
-      <Tabs tabs={ROLE_TABS} activeKey={role} onChange={(key) => { setRole(key); setPage(0); }} className="w-fit max-w-full" />
-
+      <div className="min-w-0 overflow-hidden">
+        <Tabs
+          tabs={ROLE_TABS}
+          activeKey={role}
+          onChange={(key) => {
+            setRole(key);
+            setPage(0);
+          }}
+          className="max-w-full"
+        />
+      </div>
       {error ? (
         <ErrorState error={error} onRetry={load} />
       ) : loading ? (
@@ -198,8 +207,8 @@ export default function AdminUsers() {
         </div>
       ) : (
         <>
-          <div className="table-shell">
-            <div className="overflow-x-auto">
+          <div className="table-shell relative">
+            <div className="table-scroll">
               <table className="table">
                 <thead>
                   <tr>
@@ -278,12 +287,14 @@ export default function AdminUsers() {
             </div>
           </div>
 
-          <Pagination
-            page={result.page}
-            totalPages={result.totalPages}
-            totalElements={result.totalElements}
-            onChange={setPage}
-          />
+          <div className="min-w-0">
+            <Pagination
+              page={result.page}
+              totalPages={result.totalPages}
+              totalElements={result.totalElements}
+              onChange={setPage}
+            />
+          </div>
         </>
       )}
 

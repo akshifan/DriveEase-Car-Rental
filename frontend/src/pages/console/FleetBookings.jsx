@@ -13,9 +13,11 @@ import {
   StatTile,
   StatusBadge,
   Tabs,
+  Textarea,
 } from '../../components/ui/primitives.jsx';
 import Modal from '../../components/ui/Modal.jsx';
 import {
+  fleetRefundDeposit,
   getBooking,
   listFleetBookings,
   listPickups,
@@ -39,10 +41,10 @@ const TABS = [
 /**
  * Operational booking desk.
  *
- * Two workflows dominate the day: handing a car over (CONFIRMED → ACTIVE with
- * an odometer reading) and taking it back (ACTIVE → COMPLETED). Both go through
- * the same status endpoint the API validates, so an illegal jump is refused
- * rather than silently accepted.
+ * Two workflows dominate the day: handing a car over and taking it back. After
+ * take-back the deposit is released automatically, unless damage was logged —
+ * in which case the fleet uses "Refund deposit" to send back only what the
+ * customer is owed.
  */
 export default function FleetBookings() {
   const [status, setStatus] = useState('ALL');
@@ -57,6 +59,12 @@ export default function FleetBookings() {
   const [mileage, setMileage] = useState('');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const [refundTarget, setRefundTarget] = useState(null);
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundReason, setRefundReason] = useState('');
+  const [refundErrors, setRefundErrors] = useState({});
+  const [refunding, setRefunding] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -82,14 +90,16 @@ export default function FleetBookings() {
     try {
       full = await getBooking(booking.id);
     } catch {
-      // Fall back to the row we already have if the detail call fails.
+      // Fall back to the row we already have.
     }
     const titles = {
       ACTIVE: `Hand over ${booking.vehicle?.displayName}`,
       COMPLETED: `Take back ${booking.vehicle?.displayName}`,
     };
     setAction({ booking: full, target, title: titles[target] });
-    setMileage(target === 'ACTIVE' ? String(full.mileageOut ?? full.vehicle?.mileage ?? '') : String(full.mileageOut ?? ''));
+    setMileage(target === 'ACTIVE'
+      ? String(full.mileageOut ?? full.vehicle?.mileage ?? '')
+      : String(full.mileageOut ?? ''));
     setNote('');
   };
 
@@ -108,7 +118,7 @@ export default function FleetBookings() {
         action.target === 'ACTIVE' ? 'Vehicle handed over' : 'Vehicle returned',
         action.target === 'ACTIVE'
           ? 'The booking is active and the vehicle is marked as on rent.'
-          : 'The booking is complete and the vehicle is back in the pool.',
+          : 'The booking is complete. If no damage was logged, the deposit is refunded automatically.',
       );
       setAction(null);
       load();
@@ -117,6 +127,58 @@ export default function FleetBookings() {
       toast.error('Could not update the booking', apiError.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openRefund = (booking) => {
+    // Prefill with the deposit minus whatever is already refunded.
+    const deposit = Number(booking.depositAmount || 0);
+    const refunded = Number(booking.refundedAmount || 0);
+    const remaining = Math.max(0, deposit - refunded);
+    setRefundTarget(booking);
+    setRefundAmount(remaining > 0 ? remaining.toFixed(2) : '');
+    setRefundReason('');
+    setRefundErrors({});
+  };
+
+  const submitRefund = async (event) => {
+    event.preventDefault();
+    if (!refundTarget) return;
+
+    const deposit = Number(refundTarget.depositAmount || 0);
+    const alreadyRefunded = Number(refundTarget.refundedAmount || 0);
+    const remaining = Math.max(0, deposit - alreadyRefunded);
+    const amount = Number(refundAmount);
+    const errors = {};
+    if (!refundAmount || Number.isNaN(amount) || amount <= 0) {
+      errors.amount = 'Enter an amount above zero.';
+    } else if (amount > remaining) {
+      errors.amount = `At most ${formatCurrency(remaining)} can be refunded.`;
+    }
+    if (refundReason.trim().length < 5) {
+      errors.reason = 'Give a reason of at least 5 characters — the customer sees it.';
+    }
+    setRefundErrors(errors);
+    if (Object.keys(errors).length) return;
+
+    setRefunding(true);
+    try {
+      await fleetRefundDeposit(refundTarget.id, {
+        amount,
+        reason: refundReason.trim(),
+      });
+      toast.success(
+        'Deposit refunded',
+        `${formatCurrency(amount)} is on its way back to the customer.`,
+      );
+      setRefundTarget(null);
+      load();
+    } catch (failure) {
+      const apiError = failure instanceof ApiError ? failure : new ApiError({ message: failure.message });
+      setRefundErrors(apiError.fieldErrors || {});
+      toast.error('Could not issue the refund', apiError.message);
+    } finally {
+      setRefunding(false);
     }
   };
 
@@ -130,8 +192,8 @@ export default function FleetBookings() {
           <p className="eyebrow">Operations</p>
           <h1 className="display-md mt-3">Bookings desk</h1>
           <p className="mt-3 max-w-xl text-[14.5px] text-mist-400">
-            Confirm handovers and returns with an odometer reading. Every transition is validated by
-            the booking engine.
+            Confirm handovers and returns with an odometer reading. On return, the deposit is
+            refunded automatically unless damage was logged.
           </p>
         </div>
         <Button to="/console/vehicles" variant="ghost" iconRight="arrowRight">
@@ -222,58 +284,81 @@ export default function FleetBookings() {
       ) : (
         <>
           <ul className="space-y-3">
-            {result.content.map((booking) => (
-              <li key={booking.id} className="surface flex flex-wrap items-center gap-5 p-5">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <p className="font-display text-[15.5px] font-semibold text-white">
-                      {booking.vehicle?.displayName}
+            {result.content.map((booking) => {
+              const deposit = Number(booking.depositAmount || 0);
+              const refunded = Number(booking.refundedAmount || 0);
+              const depositRemaining = Math.max(0, deposit - refunded);
+              const canRefundDeposit =
+                booking.status === 'COMPLETED' && deposit > 0 && depositRemaining > 0;
+
+              return (
+                <li key={booking.id} className="surface flex flex-wrap items-center gap-5 p-5">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <p className="font-display text-[15.5px] font-semibold text-white">
+                        {booking.vehicle?.displayName}
+                      </p>
+                      <StatusBadge status={booking.status} />
+                      {booking.paymentStatus && (
+                        <StatusBadge status={booking.paymentStatus} kind="payment" />
+                      )}
+                      {refunded > 0 && (
+                        <span className="badge border-ice/35 bg-ice/10 text-ice">
+                          {formatCurrency(refunded)} refunded
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-mist-400">
+                      <span className="font-mono text-[11px] text-mist-500">
+                        {booking.bookingReference}
+                      </span>
+                      <span>
+                        {formatDate(booking.pickupDate)} → {formatDate(booking.returnDate)}
+                      </span>
+                      <span>{pluralise(booking.totalDays, 'day')}</span>
+                      <span>{booking.pickupLocation}</span>
                     </p>
-                    <StatusBadge status={booking.status} />
-                    {booking.paymentStatus && (
-                      <StatusBadge status={booking.paymentStatus} kind="payment" />
-                    )}
                   </div>
-                  <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-mist-400">
-                    <span className="font-mono text-[11px] text-mist-500">
-                      {booking.bookingReference}
-                    </span>
-                    <span>
-                      {formatDate(booking.pickupDate)} → {formatDate(booking.returnDate)}
-                    </span>
-                    <span>{pluralise(booking.totalDays, 'day')}</span>
-                    <span>{booking.pickupLocation}</span>
-                  </p>
-                </div>
 
-                <div className="text-right">
-                  <p className="text-[14px] text-mist-100">{formatCurrency(booking.totalAmount)}</p>
-                  <p className="mt-0.5 font-mono text-[11px] text-mist-500">
-                    {booking.vehicle?.licensePlate}
-                  </p>
-                </div>
+                  <div className="text-right">
+                    <p className="text-[14px] text-mist-100">{formatCurrency(booking.totalAmount)}</p>
+                    <p className="mt-0.5 font-mono text-[11px] text-mist-500">
+                      {booking.vehicle?.licensePlate}
+                    </p>
+                  </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {booking.status === 'CONFIRMED' && (
-                    <Button size="sm" icon="key" onClick={() => openAction(booking, 'ACTIVE')}>
-                      Hand over
-                    </Button>
-                  )}
-                  {booking.status === 'ACTIVE' && (
-                    <Button size="sm" variant="ghost" icon="check" onClick={() => openAction(booking, 'COMPLETED')}>
-                      Take back
-                    </Button>
-                  )}
-                  <Link
-                    to={`/console/vehicles/${booking.vehicle?.id}/history`}
-                    className="icon-btn h-9 w-9"
-                    aria-label="Vehicle history"
-                  >
-                    <Icon name="clock" size={16} />
-                  </Link>
-                </div>
-              </li>
-            ))}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {booking.status === 'CONFIRMED' && (
+                      <Button size="sm" icon="key" onClick={() => openAction(booking, 'ACTIVE')}>
+                        Hand over
+                      </Button>
+                    )}
+                    {booking.status === 'ACTIVE' && (
+                      <Button size="sm" variant="ghost" icon="check" onClick={() => openAction(booking, 'COMPLETED')}>
+                        Take back
+                      </Button>
+                    )}
+                    {canRefundDeposit && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon="refresh"
+                        onClick={() => openRefund(booking)}
+                      >
+                        Refund deposit
+                      </Button>
+                    )}
+                    <Link
+                      to={`/console/vehicles/${booking.vehicle?.id}/history`}
+                      className="icon-btn h-9 w-9"
+                      aria-label="Vehicle history"
+                    >
+                      <Icon name="clock" size={16} />
+                    </Link>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
 
           <Pagination
@@ -285,6 +370,7 @@ export default function FleetBookings() {
         </>
       )}
 
+      {/* Hand-over / take-back */}
       <Modal
         open={Boolean(action)}
         onClose={() => setAction(null)}
@@ -292,7 +378,7 @@ export default function FleetBookings() {
         description={
           action?.target === 'ACTIVE'
             ? 'Record the odometer reading at hand-over. The vehicle becomes unavailable for new bookings.'
-            : 'Record the odometer reading at return. Any damage should be logged on the vehicle afterwards.'
+            : 'Record the odometer reading at return. If damage was logged, the deposit is held for a manual refund.'
         }
       >
         <form onSubmit={submitAction} className="space-y-5">
@@ -340,6 +426,87 @@ export default function FleetBookings() {
             </Button>
             <Button type="submit" loading={saving}>
               {action?.target === 'ACTIVE' ? 'Confirm hand-over' : 'Confirm return'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Fleet refund of deposit */}
+      <Modal
+        open={Boolean(refundTarget)}
+        onClose={() => setRefundTarget(null)}
+        size="sm"
+        title="Refund customer deposit"
+        description={
+          refundTarget
+            ? `${refundTarget.vehicle?.displayName} · ${refundTarget.bookingReference}`
+            : ''
+        }
+      >
+        <form onSubmit={submitRefund} className="space-y-5">
+          <Card className="p-4">
+            <dl className="space-y-3">
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="text-[13px] text-mist-400">Original deposit</dt>
+                <dd className="text-[13.5px] text-mist-100">
+                  {formatCurrency(refundTarget?.depositAmount || 0)}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="text-[13px] text-mist-400">Already refunded</dt>
+                <dd className="text-[13.5px] text-ice">
+                  {formatCurrency(refundTarget?.refundedAmount || 0)}
+                </dd>
+              </div>
+              <div className="rule my-1" />
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="text-[13px] font-medium text-mist-200">Refundable now</dt>
+                <dd className="text-[14px] font-semibold text-white">
+                  {formatCurrency(
+                    Math.max(
+                      0,
+                      Number(refundTarget?.depositAmount || 0)
+                      - Number(refundTarget?.refundedAmount || 0),
+                    ),
+                  )}
+                </dd>
+              </div>
+            </dl>
+          </Card>
+
+          <Field label="Amount to refund (₹)" htmlFor="fleet-refund-amount" required error={refundErrors.amount}>
+            <input
+              id="fleet-refund-amount"
+              type="number"
+              min="0"
+              step="0.01"
+              className="input"
+              value={refundAmount}
+              onChange={(event) => setRefundAmount(event.target.value)}
+            />
+          </Field>
+
+          <Textarea
+            label="Reason (visible to the customer)"
+            required
+            maxLength={255}
+            error={refundErrors.reason}
+            value={refundReason}
+            onChange={(event) => setRefundReason(event.target.value)}
+            placeholder="₹2,000 retained for the rear bumper repair; the rest of the deposit is refunded."
+          />
+
+          <p className="text-[12px] leading-relaxed text-mist-500">
+            Refunds return to the original payment method. A full refund moves the payment to
+            refunded; a second full refund on the same payment is rejected by the API.
+          </p>
+
+          <div className="flex justify-end gap-3">
+            <Button variant="quiet" onClick={() => setRefundTarget(null)}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={refunding}>
+              Issue refund
             </Button>
           </div>
         </form>

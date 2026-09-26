@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Icon from '../../components/ui/Icon.jsx';
 import {
@@ -25,14 +25,6 @@ const METHOD_ICONS = {
   CASH: 'cash',
 };
 
-/**
- * Payment step.
- *
- * The amount is always the booking's own total - it is displayed from the API
- * response and posted back unchanged, so the client can never invent a price.
- * Card data never leaves the browser: only the last four digits are sent, and
- * the sandbox gateway declines anything else.
- */
 export default function CheckoutPage() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
@@ -50,6 +42,9 @@ export default function CheckoutPage() {
   const [failure, setFailure] = useState('');
   const [paying, setPaying] = useState(false);
 
+  const termsRef = useRef(null);
+  const submitRef = useRef(null);
+
   const idempotencyKey = useMemo(
     () => `web-${bookingId}-${Math.random().toString(36).slice(2, 10)}`,
     [bookingId],
@@ -62,7 +57,6 @@ export default function CheckoutPage() {
       .then((detail) => {
         setBooking(detail);
         if (detail.status !== 'PENDING') {
-          // Already settled or cancelled - there is nothing to pay here.
           navigate(`/bookings/${detail.id}`, { replace: true });
         }
       })
@@ -85,7 +79,18 @@ export default function CheckoutPage() {
       errors.upiId = 'Enter a valid UPI ID, for example name@bank.';
     }
     setFieldErrors(errors);
-    if (Object.keys(errors).length) return;
+
+    if (Object.keys(errors).length) {
+      // Make the failure visible: scroll the offending field into view and warn.
+      if (errors.terms && termsRef.current) {
+        termsRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (errors.cardLast4 || errors.upiId) {
+        document.getElementById('card-last4')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.getElementById(errors.upiId ? 'upi-id' : 'card-last4')?.focus();
+      }
+      toast.warn('Almost there', Object.values(errors)[0]);
+      return;
+    }
 
     setPaying(true);
     setFailure('');
@@ -108,7 +113,9 @@ export default function CheckoutPage() {
       }
     } catch (err) {
       const apiError = err instanceof ApiError ? err : new ApiError({ message: err.message });
-      if (apiError.code === 'BOOKING_CANCELLED' || apiError.code === 'ALREADY_SETTLED' || apiError.code === 'PAYMENT_ALREADY_SETTLED') {
+      if (apiError.code === 'BOOKING_CANCELLED'
+        || apiError.code === 'ALREADY_SETTLED'
+        || apiError.code === 'PAYMENT_ALREADY_SETTLED') {
         toast.warn('Nothing left to pay', apiError.message);
         load();
       } else {
@@ -153,8 +160,7 @@ export default function CheckoutPage() {
       </header>
 
       <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr]">
-        {/* Payment form */}
-        <form onSubmit={submit} className="space-y-6">
+        <form onSubmit={submit} className="space-y-6" ref={submitRef}>
           <Card className="p-6">
             <h2 className="font-display text-[16px] font-semibold text-white">Payment method</h2>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -270,7 +276,7 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          <div>
+          <div ref={termsRef}>
             <Checkbox
               label="I accept the rental terms, fuel policy and cancellation policy"
               checked={accepted}
@@ -294,7 +300,6 @@ export default function CheckoutPage() {
           </p>
         </form>
 
-        {/* Summary */}
         <aside className="space-y-6 lg:sticky lg:top-[96px] lg:self-start">
           <Card className="p-6">
             <h2 className="font-display text-[16px] font-semibold text-white">Your trip</h2>

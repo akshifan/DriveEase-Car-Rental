@@ -31,7 +31,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
         <Skeleton className="h-28" />
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
@@ -74,28 +74,69 @@ export default function AdminDashboard() {
   const revenueTrend = trend(revenueLast30Days, revenuePrevious30Days);
 
   return (
-    <div className="space-y-8">
-      <header className="flex flex-wrap items-end justify-between gap-5">
-        <div>
+    // `min-w-0` on the root stops any wide child (a long reference, a wide
+    // table, a chart) from pushing the whole page wider than the viewport.
+    <div className="min-w-0 space-y-8">
+
+      {/* --------------------------------------------------------------- header
+        The header is a column on narrow screens and a row on large ones. Every
+        child gets min-w-0 so long content cannot force the row wider than the
+        screen.
+      */}
+      <header className="flex min-w-0 flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
           <p className="eyebrow">Control room</p>
           <h1 className="display-md mt-3">Business overview</h1>
-          <p className="mt-3 max-w-xl text-[14.5px] text-mist-400">
-            Every figure on this page is aggregated in the database - nothing here is estimated in the
-            browser.
+          <p className="mt-3 max-w-xl text-[14.5px] leading-relaxed text-mist-400">
+            Platform-wide numbers. Your own fleet lives in the fleet console; your bookings as a
+            customer live in the customer view.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <Button variant="ghost" icon="download" to="/admin/reports">
-            Reports & exports
+
+        {/*
+          Actions grid:
+          - 1 column on very narrow phones (< 640px) — one button per row, full width
+          - 2 columns on small phones and up (sm:)
+          - Inline on large screens (lg:) — one tidy row
+          Each button is min-w-0 so its label can't force the row wider.
+        */}
+        <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
+          <Button
+            variant="ghost"
+            icon="building"
+            to="/admin/fleets"
+            className="w-full min-w-0 justify-center lg:w-auto"
+          >
+            Fleet partners
           </Button>
-          <Button to="/admin/bookings" iconRight="arrowRight">
-            Bookings
+          <Button
+            variant="ghost"
+            icon="gauge"
+            to="/console"
+            className="w-full min-w-0 justify-center lg:w-auto"
+          >
+            My fleet
+          </Button>
+          <Button
+            variant="ghost"
+            icon="user"
+            to="/dashboard"
+            className="w-full min-w-0 justify-center lg:w-auto"
+          >
+            Customer view
+          </Button>
+          <Button
+            to="/admin/bookings"
+            iconRight="arrowRight"
+            className="w-full min-w-0 justify-center sm:col-span-2 lg:col-auto lg:w-auto"
+          >
+            All bookings
           </Button>
         </div>
       </header>
 
-      {/* Money */}
-      <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      {/* Money tiles */}
+      <section className="grid min-w-0 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile
           label="Gross revenue"
           value={formatCurrency(grossRevenue)}
@@ -123,8 +164,8 @@ export default function AdminDashboard() {
         />
       </section>
 
-      {/* Volume */}
-      <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      {/* Volume tiles */}
+      <section className="grid min-w-0 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile
           label="Accounts"
           value={totalUsers}
@@ -149,9 +190,9 @@ export default function AdminDashboard() {
         />
       </section>
 
-      {/* Bookings + reviews */}
-      <section className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <Card className="p-6">
+      {/* Funnel + vehicle states */}
+      <section className="grid min-w-0 gap-6 lg:grid-cols-[1.5fr_1fr]">
+        <Card className="min-w-0 p-6">
           <h2 className="font-display text-[16px] font-semibold text-white">Booking funnel</h2>
           <p className="mt-1.5 text-[13px] text-mist-400">
             Where every reservation sits right now, straight from the status column.
@@ -161,10 +202,10 @@ export default function AdminDashboard() {
               const count = bookingStatusCounts[status] || 0;
               const share = totalBookings ? (count / totalBookings) * 100 : 0;
               return (
-                <div key={status}>
-                  <div className="flex items-center justify-between gap-3">
+                <div key={status} className="min-w-0">
+                  <div className="flex min-w-0 items-center justify-between gap-3">
                     <StatusBadge status={status} />
-                    <span className="font-mono text-[12px] text-mist-300">
+                    <span className="min-w-0 shrink-0 font-mono text-[12px] text-mist-300">
                       {count} · {share.toFixed(0)}%
                     </span>
                   </div>
@@ -180,13 +221,13 @@ export default function AdminDashboard() {
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="min-w-0 p-6">
           <h2 className="font-display text-[16px] font-semibold text-white">Vehicle states</h2>
           <ul className="mt-5 divide-y divide-white/[0.05]">
             {Object.entries(VEHICLE_STATUS_LABELS).map(([status, label]) => (
-              <li key={status} className="flex items-center justify-between gap-4 py-3.5">
-                <span className="text-[13.5px] text-mist-300">{label}</span>
-                <span className="font-display text-[17px] font-semibold text-white">
+              <li key={status} className="flex min-w-0 items-center justify-between gap-4 py-3.5">
+                <span className="min-w-0 truncate text-[13.5px] text-mist-300">{label}</span>
+                <span className="shrink-0 font-display text-[17px] font-semibold text-white">
                   {vehicleStatusCounts[status] || 0}
                 </span>
               </li>
@@ -194,13 +235,13 @@ export default function AdminDashboard() {
           </ul>
 
           <div className="mt-5 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[13px] text-mist-400">Customer reviews</span>
-              <span className="text-[13.5px] text-mist-100">{totalReviews}</span>
+            <div className="flex min-w-0 items-center justify-between gap-3">
+              <span className="min-w-0 truncate text-[13px] text-mist-400">Customer reviews</span>
+              <span className="shrink-0 text-[13.5px] text-mist-100">{totalReviews}</span>
             </div>
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <span className="text-[13px] text-mist-400">Average rating</span>
-              <span className="text-[13.5px] text-mist-100">
+            <div className="mt-2 flex min-w-0 items-center justify-between gap-3">
+              <span className="min-w-0 truncate text-[13px] text-mist-400">Average rating</span>
+              <span className="shrink-0 text-[13.5px] text-mist-100">
                 {averageRating != null ? `${Number(averageRating).toFixed(2)} ★` : '-'}
               </span>
             </div>
@@ -209,8 +250,8 @@ export default function AdminDashboard() {
       </section>
 
       {/* Recent activity */}
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div>
+      <section className="grid min-w-0 gap-6 lg:grid-cols-2">
+        <div className="min-w-0">
           <SectionHeading
             eyebrow="Latest"
             title="Recent bookings"
@@ -220,11 +261,14 @@ export default function AdminDashboard() {
               </Button>
             }
           />
-          <Card className="mt-5 px-5 py-2">
+          <Card className="mt-5 min-w-0 px-5 py-2">
             {recentBookings.length ? (
               <ul className="divide-y divide-white/[0.05]">
                 {recentBookings.map((booking) => (
-                  <li key={booking.id} className="flex items-center justify-between gap-4 py-4">
+                  <li
+                    key={booking.id}
+                    className="flex min-w-0 items-center justify-between gap-4 py-4"
+                  >
                     <div className="min-w-0">
                       <p className="truncate text-[13.5px] text-white">
                         {booking.customerName || booking.customer?.fullName || 'Customer'}
@@ -232,11 +276,11 @@ export default function AdminDashboard() {
                           {booking.vehicleName || booking.vehicle?.displayName}
                         </span>
                       </p>
-                      <p className="mt-1 font-mono text-[10.5px] uppercase tracking-[0.1em] text-mist-500">
+                      <p className="mt-1 truncate font-mono text-[10.5px] uppercase tracking-[0.1em] text-mist-500">
                         {booking.bookingReference} · {formatDate(booking.pickupDate)}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="shrink-0 text-right">
                       <p className="text-[13px] text-mist-100">{formatCurrency(booking.totalAmount)}</p>
                       <StatusBadge status={booking.status} className="mt-1" />
                     </div>
@@ -249,20 +293,23 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        <div className="space-y-6">
-          <div>
+        <div className="min-w-0 space-y-6">
+          <div className="min-w-0">
             <h2 className="font-display text-[16px] font-semibold text-white">Recent refunds</h2>
-            <Card className="mt-4 px-5 py-2">
+            <Card className="mt-4 min-w-0 px-5 py-2">
               {recentRefunds.length ? (
                 <ul className="divide-y divide-white/[0.05]">
                   {recentRefunds.map((refund, index) => (
-                    <li key={refund.id ?? index} className="flex items-start justify-between gap-4 py-4">
+                    <li
+                      key={refund.id ?? index}
+                      className="flex min-w-0 items-start justify-between gap-4 py-4"
+                    >
                       <div className="min-w-0">
                         <p className="truncate font-mono text-[11.5px] text-mist-200">
                           {refund.refundReference || refund.paymentReference || `Refund ${index + 1}`}
                         </p>
                         <p className="mt-1 line-clamp-2 text-[12.5px] text-mist-400">{refund.reason}</p>
-                        <p className="mt-1 text-[11.5px] text-mist-500">
+                        <p className="mt-1 truncate text-[11.5px] text-mist-500">
                           {refund.source === 'CANCELLATION' ? 'Cancellation' : 'Administrative'}
                           {refund.processedByName ? ` · ${refund.processedByName}` : ''}
                         </p>
@@ -279,13 +326,16 @@ export default function AdminDashboard() {
             </Card>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <h2 className="font-display text-[16px] font-semibold text-white">Recent reviews</h2>
-            <Card className="mt-4 px-5 py-2">
+            <Card className="mt-4 min-w-0 px-5 py-2">
               {recentReviews.length ? (
                 <ul className="divide-y divide-white/[0.05]">
                   {recentReviews.map((review, index) => (
-                    <li key={review.id ?? index} className="flex items-start justify-between gap-4 py-4">
+                    <li
+                      key={review.id ?? index}
+                      className="flex min-w-0 items-start justify-between gap-4 py-4"
+                    >
                       <div className="min-w-0">
                         <p className="truncate text-[13px] text-white">
                           {review.reviewerName || 'Customer'}
@@ -294,7 +344,7 @@ export default function AdminDashboard() {
                         <p className="mt-1 line-clamp-2 text-[12.5px] text-mist-400">
                           {review.comment || review.title || 'No comment'}
                         </p>
-                        <p className="mt-1 text-[11.5px] text-mist-500">
+                        <p className="mt-1 truncate text-[11.5px] text-mist-500">
                           {formatDateTime(review.createdAt)}
                         </p>
                       </div>
@@ -318,7 +368,6 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* Category note */}
       <p className="text-[12px] text-mist-500">
         Fleet split by category and branch, with day-series revenue, lives in{' '}
         <Link to="/admin/reports" className="text-mist-300 underline decoration-white/20">

@@ -5,12 +5,15 @@ import {
   Button,
   EmptyState,
   ErrorState,
+  Field,
   Pagination,
   Skeleton,
   StatusBadge,
   Tabs,
 } from '../../components/ui/primitives.jsx';
-import { listMyBookings } from '../../api/bookings.js';
+import { ConfirmDialog } from '../../components/ui/Modal.jsx';
+import { cancelBooking, listMyBookings } from '../../api/bookings.js';
+import { useToast } from '../../context/ToastContext.jsx';
 import { ApiError } from '../../api/client.js';
 import { formatCurrency, formatDate, pluralise } from '../../utils/format.js';
 import { BOOKING_STATUS } from '../../utils/constants.js';
@@ -30,7 +33,13 @@ export default function BookingsPage() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [busyId, setBusyId] = useState(null);
 
+  const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
+
+  const toast = useToast();
   const status = searchParams.get('status') || 'ALL';
 
   const load = useCallback(() => {
@@ -52,6 +61,40 @@ export default function BookingsPage() {
     else next.set('status', key);
     setSearchParams(next, { replace: true });
     setPage(0);
+  };
+
+  const openCancel = (booking) => {
+    setCancelTarget(booking);
+    setCancelReason('');
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    if (!cancelReason.trim()) {
+      toast.warn('Tell us why', 'A short reason helps the fleet team plan.');
+      return;
+    }
+    setCancelling(true);
+    setBusyId(cancelTarget.id);
+    try {
+      const updated = await cancelBooking(cancelTarget.id, cancelReason.trim());
+      const refunded = Number(updated?.refundedAmount || 0);
+      toast.success(
+        'Booking cancelled',
+        refunded > 0
+          ? `${formatCurrency(refunded)} will be returned to your original payment method.`
+          : 'No refund was due for this cancellation.',
+      );
+      setCancelTarget(null);
+      setCancelReason('');
+      load();
+    } catch (failure) {
+      const apiError = failure instanceof ApiError ? failure : new ApiError({ message: failure.message });
+      toast.error('Could not cancel', apiError.message);
+    } finally {
+      setCancelling(false);
+      setBusyId(null);
+    }
   };
 
   return (
@@ -97,10 +140,10 @@ export default function BookingsPage() {
         <>
           <ul className="space-y-3">
             {result.content.map((booking) => (
-              <li key={booking.id}>
+              <li key={booking.id} className="surface flex flex-wrap items-center gap-4 p-5">
                 <Link
                   to={`/bookings/${booking.id}`}
-                  className="group surface flex flex-wrap items-center gap-5 p-5 transition hover:-translate-y-0.5 hover:border-white/15"
+                  className="group flex min-w-0 flex-1 items-center gap-5"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-3">
@@ -139,11 +182,28 @@ export default function BookingsPage() {
                       incl. {formatCurrency(booking.depositAmount)} deposit
                     </p>
                   </div>
-
-                  <span className="icon-btn h-9 w-9 shrink-0" aria-hidden="true">
-                    <Icon name="chevronRight" size={16} />
-                  </span>
                 </Link>
+
+                <div className="flex items-center gap-2">
+                  {booking.cancellable && (
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      icon="x"
+                      loading={busyId === booking.id}
+                      onClick={() => openCancel(booking)}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                  <Link
+                    to={`/bookings/${booking.id}`}
+                    className="icon-btn h-9 w-9"
+                    aria-label={`Open booking ${booking.bookingReference}`}
+                  >
+                    <Icon name="chevronRight" size={16} />
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>
@@ -156,6 +216,37 @@ export default function BookingsPage() {
           />
         </>
       )}
+
+      <ConfirmDialog
+        open={Boolean(cancelTarget)}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={confirmCancel}
+        title="Cancel this booking?"
+        description={
+          cancelTarget
+            ? `${cancelTarget.vehicle?.displayName} · ${cancelTarget.bookingReference}`
+            : ''
+        }
+        confirmLabel="Yes, cancel it"
+        cancelLabel="Keep the booking"
+        loading={cancelling}
+      >
+        <Field label="Reason for cancelling" htmlFor="list-cancel-reason" required>
+          <textarea
+            id="list-cancel-reason"
+            className="input"
+            rows={3}
+            maxLength={255}
+            value={cancelReason}
+            onChange={(event) => setCancelReason(event.target.value)}
+            placeholder="Plans changed, found another car, dates moved…"
+          />
+        </Field>
+        <p className="mt-3 text-[12px] leading-relaxed text-mist-500">
+          Cancelling more than 24 hours before pick-up refunds everything you paid, including the
+          deposit. Inside 24 hours one day of rental is retained.
+        </p>
+      </ConfirmDialog>
     </div>
   );
 }

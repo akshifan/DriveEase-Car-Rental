@@ -18,11 +18,6 @@ import java.util.Optional;
 
 public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpecificationExecutor<Booking> {
 
-    /**
-     * Authoritative overlap test. A vehicle is occupied for
-     * [pickup_date, return_date), therefore two ranges clash when
-     * existing.pickup < requested.return AND requested.pickup < existing.return.
-     */
     @Query("""
             SELECT COUNT(b) FROM Booking b
             WHERE b.vehicle.id = :vehicleId
@@ -56,7 +51,57 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
             """)
     List<Booking> findByVehicleIdWithVehicle(@Param("vehicleId") Long vehicleId);
 
-    /** Live bookings (CONFIRMED/ACTIVE) that have not fully returned - batched for the fleet dashboard. */
+    // ── Fleet-scoped finders ────────────────────────────────────────────
+    @EntityGraph(attributePaths = {"vehicle", "user"})
+    @Query("SELECT b FROM Booking b WHERE b.id = :id AND b.ownerFleet.id = :ownerId")
+    Optional<Booking> findByIdAndOwnerFleet(@Param("id") Long id, @Param("ownerId") Long ownerId);
+
+    @EntityGraph(attributePaths = {"vehicle", "user"})
+    Page<Booking> findByOwnerFleetId(Long ownerId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"vehicle", "user"})
+    Page<Booking> findByOwnerFleetIdAndStatus(Long ownerId, BookingStatus status, Pageable pageable);
+
+    long countByOwnerFleetId(Long ownerId);
+
+    long countByOwnerFleetIdAndStatus(Long ownerId, BookingStatus status);
+
+    // ── Fleet earnings aggregates ──────────────────────────────────────
+    @Query("""
+            SELECT COALESCE(SUM(b.baseAmount), 0) FROM Booking b
+            WHERE b.ownerFleet.id = :ownerId
+              AND b.status = com.driveease.entity.BookingStatus.COMPLETED
+            """)
+    BigDecimal sumCompletedRentalRevenueForOwner(@Param("ownerId") Long ownerId);
+
+    @Query("""
+            SELECT COALESCE(SUM(b.baseAmount), 0) FROM Booking b
+            WHERE b.ownerFleet.id = :ownerId
+              AND b.status = com.driveease.entity.BookingStatus.ACTIVE
+            """)
+    BigDecimal sumActiveRentalRevenueForOwner(@Param("ownerId") Long ownerId);
+
+    @Query("""
+            SELECT COUNT(b) FROM Booking b
+            WHERE b.ownerFleet.id = :ownerId
+              AND b.status = com.driveease.entity.BookingStatus.COMPLETED
+            """)
+    long countCompletedForOwner(@Param("ownerId") Long ownerId);
+
+    @EntityGraph(attributePaths = {"vehicle", "user"})
+    @Query("""
+            SELECT b FROM Booking b
+            WHERE b.ownerFleet.id = :ownerId
+              AND b.status = com.driveease.entity.BookingStatus.CONFIRMED
+              AND b.pickupDate >= :today
+            ORDER BY b.pickupDate ASC
+            """)
+    List<Booking> findConfirmedUpcomingForOwner(@Param("ownerId") Long ownerId,
+                                                @Param("today") LocalDate today,
+                                                Pageable pageable);
+
+    // ── Existing aggregate helpers (kept, still used by admin) ──────────
+    @EntityGraph(attributePaths = {"vehicle", "ownerFleet"})
     @Query("""
             SELECT b FROM Booking b
             WHERE b.status IN (com.driveease.entity.BookingStatus.CONFIRMED, com.driveease.entity.BookingStatus.ACTIVE)
@@ -64,7 +109,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
             """)
     List<Booking> findLiveBookings(@Param("today") LocalDate today);
 
-    /** Booked periods that hold the vehicle, oldest pickup first - DB-paged for the availability calendar. */
     @Query("""
             SELECT b FROM Booking b
             WHERE b.vehicle.id = :vehicleId
@@ -77,7 +121,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
     Page<Booking> findBlockingBookings(@Param("vehicleId") Long vehicleId,
                                        @Param("today") LocalDate today, Pageable pageable);
 
-    /** Completed bookings per vehicle in one grouped query - batched for the fleet dashboard. */
     @Query("""
             SELECT b.vehicle.id, COUNT(b) FROM Booking b
             WHERE b.status = com.driveease.entity.BookingStatus.COMPLETED
@@ -120,4 +163,13 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
             GROUP BY b.vehicle.id
             """)
     List<Object[]> countBookingsPerVehicle(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    // ── Admin fleet aggregate: bookings grouped by owning fleet ────────
+    @Query("""
+            SELECT b.ownerFleet.id, COUNT(b), COALESCE(SUM(b.baseAmount), 0)
+            FROM Booking b
+            WHERE b.status = com.driveease.entity.BookingStatus.COMPLETED
+            GROUP BY b.ownerFleet.id
+            """)
+    List<Object[]> completedAggregatesByOwner();
 }

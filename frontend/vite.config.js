@@ -23,6 +23,10 @@ export default defineConfig({
         target: process.env.VITE_DEV_API_TARGET || 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/uploads': {
+        target: process.env.VITE_DEV_API_TARGET || 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
   preview: {
@@ -33,6 +37,10 @@ export default defineConfig({
     // locally running backend without editing env vars.
     proxy: {
       '/api': {
+        target: process.env.VITE_DEV_API_TARGET || 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/uploads': {
         target: process.env.VITE_DEV_API_TARGET || 'http://localhost:8080',
         changeOrigin: true,
       },

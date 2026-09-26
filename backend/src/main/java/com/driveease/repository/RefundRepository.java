@@ -1,6 +1,8 @@
 package com.driveease.repository;
 
 import com.driveease.entity.Refund;
+import com.driveease.entity.RefundSource;
+import com.driveease.entity.RefundStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -11,10 +13,15 @@ import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface RefundRepository extends JpaRepository<Refund, Long> {
 
     List<Refund> findByPaymentIdOrderByCreatedAtDesc(Long paymentId);
+
+    /** Idempotency probe: is there already a successful refund of this source for this payment? */
+    Optional<Refund> findFirstByPaymentIdAndSourceAndStatus(
+        Long paymentId, RefundSource source, RefundStatus status);
 
     @Query("SELECT COALESCE(SUM(r.amount), 0) FROM Refund r WHERE r.payment.id = :paymentId AND r.status = 'SUCCESS'")
     BigDecimal sumRefundedForPayment(@Param("paymentId") Long paymentId);
@@ -22,7 +29,7 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
     @Query("SELECT COALESCE(SUM(r.amount), 0) FROM Refund r WHERE r.payment.booking.id = :bookingId AND r.status = 'SUCCESS'")
     BigDecimal sumRefundedForBooking(@Param("bookingId") Long bookingId);
 
-    boolean existsByBookingIdAndSource(Long bookingId, com.driveease.entity.RefundSource source);
+    boolean existsByBookingIdAndSource(Long bookingId, RefundSource source);
 
     @EntityGraph(attributePaths = {"booking", "booking.vehicle", "payment"})
     Page<Refund> findAllByOrderByCreatedAtDesc(Pageable pageable);
@@ -30,9 +37,8 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
     @Query("SELECT COALESCE(SUM(r.amount), 0) FROM Refund r WHERE r.status = 'SUCCESS' AND r.createdAt >= :from AND r.createdAt < :to")
     BigDecimal sumRefundedBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    long countBySourceAndStatus(com.driveease.entity.RefundSource source, com.driveease.entity.RefundStatus status);
+    long countBySourceAndStatus(RefundSource source, RefundStatus status);
 
-    /** Refunds attributed to a vehicle category - used by the revenue report's category grouping. */
     @Query(value = """
             SELECT v.category AS bucket, SUM(r.amount) AS refunded
             FROM refunds r
@@ -44,7 +50,6 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
             """, nativeQuery = true)
     List<Object[]> sumRefundedByCategory(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    /** Refunds attributed to the pickup branch - used by the revenue report's branch grouping. */
     @Query(value = """
             SELECT b.pickup_location AS bucket, SUM(r.amount) AS refunded
             FROM refunds r

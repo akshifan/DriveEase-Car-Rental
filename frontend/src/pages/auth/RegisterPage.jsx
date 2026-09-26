@@ -96,14 +96,30 @@ export default function RegisterPage() {
       title="Create your account"
       subtitle="It takes a minute. You only need your licence details once - after that, booking is three clicks."
       footer={
-        <>
-          Already registered?{' '}
-          <Link to="/login" className="text-lime hover:text-lime-soft">
-            Sign in
-          </Link>
-        </>
+        <div className="flex flex-col gap-3">
+          <p>
+            Want to list your cars?{' '}
+            <Link
+              to="/register-fleet"
+              className="text-lime hover:text-lime-soft"
+            >
+              Apply as a fleet partner
+            </Link>
+          </p>
+
+          <p>
+            Already registered?{' '}
+            <Link
+              to="/login"
+              className="text-lime hover:text-lime-soft"
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
       }
     >
+
       <form onSubmit={submit} className="space-y-5" noValidate>
         {formError && (
           <div

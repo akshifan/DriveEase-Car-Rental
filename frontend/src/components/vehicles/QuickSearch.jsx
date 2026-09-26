@@ -77,13 +77,20 @@ export default function QuickSearch({ className = '', tone = 'dark' }) {
               className="w-full cursor-pointer appearance-none border-0 bg-transparent p-0 text-[13.5px] text-white focus:outline-none"
               aria-label="Pick-up location"
             >
-              <option value="">All locations</option>
+  <option value="" className="bg-[#1a2929] text-white">
+    All locations
+  </option>
+
               {locations.map((entry) => (
-                <option key={entry} value={entry}>
+                <option
+                  key={entry}
+                  value={entry}
+                  className="bg-[#1a2929] text-white"
+                >
                   {entry}
                 </option>
               ))}
-            </select>
+</select>
           </span>
         </label>
 

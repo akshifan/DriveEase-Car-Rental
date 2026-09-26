@@ -56,4 +56,13 @@ public class AppProperties {
     public static class Uploads {
         private String directory = "./uploads";
     }
+
+    private Fleet fleet = new Fleet();
+
+    @Getter
+    @Setter
+    public static class Fleet {
+        /** DEV ONLY: skip email verification for fleet registrations. */
+        private boolean autoVerify = false;
+    }
 }

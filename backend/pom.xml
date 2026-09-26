@@ -121,6 +121,19 @@
                 <configuration>
                 </configuration>
             </plugin>
+          <plugin>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-maven-plugin</artifactId>
+            <version>10.17.0</version>
+            <configuration>
+              <url>jdbc:postgresql://localhost:5432/driveease</url>
+              <user>driveease_user</user>
+              <password>driveease@123</password>
+              <locations>
+                <location>filesystem:src/main/resources/db/migration</location>
+              </locations>
+            </configuration>
+          </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

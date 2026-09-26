@@ -84,6 +84,10 @@ public class Booking extends BaseEntity {
     @Column(name = "cancellation_reason", length = 255)
     private String cancellationReason;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User ownerFleet;
+
     /** Overlap test on the half-open interval [pickupDate, returnDate). */
     public boolean overlaps(LocalDate otherStart, LocalDate otherEnd) {
         return pickupDate.isBefore(otherEnd) && otherStart.isBefore(returnDate);
