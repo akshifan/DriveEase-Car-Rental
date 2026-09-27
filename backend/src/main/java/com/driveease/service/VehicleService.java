@@ -386,24 +386,26 @@ public class VehicleService {
     private void replaceGallery(Vehicle vehicle, List<String> galleryUrls, String primaryUrl) {
         if (galleryUrls == null) return;
 
-        // 1. Delete existing rows and force flush
+        // Delete old rows and force flush so uq_vehicle_images_primary is released.
         vehicleImageRepository.deleteByVehicleId(vehicle.getId());
         vehicleImageRepository.flush();
 
-        // 2. Build final URL list: cover first, then gallery, deduped
+        // Build deduped list, cover first.
         List<String> urls = new ArrayList<>();
-        if (primaryUrl != null && !primaryUrl.isBlank()) {
-            urls.add(primaryUrl.trim());
+        String cover = primaryUrl == null ? null : primaryUrl.trim();
+
+        if (cover != null && !cover.isBlank()) {
+            urls.add(cover);
         }
         for (String u : galleryUrls) {
-            if (u == null || u.isBlank()) continue;
+            if (u == null) continue;
             String trimmed = u.trim();
-            if (!urls.contains(trimmed)) {
-                urls.add(trimmed);
+            if (trimmed.isEmpty() || trimmed.equals(cover) || urls.contains(trimmed)) {
+                continue;
             }
+            urls.add(trimmed);
         }
 
-        // 3. Insert
         for (int i = 0; i < urls.size(); i++) {
             VehicleImage image = new VehicleImage();
             image.setVehicle(vehicle);

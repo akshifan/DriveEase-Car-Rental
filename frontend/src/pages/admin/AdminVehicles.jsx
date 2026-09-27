@@ -312,13 +312,8 @@ export default function AdminVehicles() {
     setSaving(true);
     setFieldErrors({});
 
-    const galleryList = toList(form.galleryUrls);
     const coverUrl = form.imageUrl.trim();
-
-    // Ensure the cover is always part of the gallery sent to the backend
-    if (coverUrl && !galleryList.includes(coverUrl)) {
-      galleryList.unshift(coverUrl);
-    }
+    const galleryList = toList(form.galleryUrls).filter((u) => u !== coverUrl);
 
     const payload = {
       make: form.make.trim(),
