@@ -385,19 +385,31 @@ public class VehicleService {
 
     private void replaceGallery(Vehicle vehicle, List<String> galleryUrls, String primaryUrl) {
         if (galleryUrls == null) return;
+
+        // 1. Delete existing images and FLUSH so Postgres releases the
+        //    uq_vehicle_images_primary constraint before the inserts run.
         vehicleImageRepository.deleteByVehicleId(vehicle.getId());
-        vehicleImageRepository.flush();          // ← ADD THIS LINE
-        List<String> urls = new ArrayList<>(galleryUrls.stream()
-            .filter(u -> u != null && !u.isBlank())
-            .distinct()
-            .toList());
-        if (urls.isEmpty() && primaryUrl != null && !primaryUrl.isBlank()) {
-            urls.add(primaryUrl);
+        vehicleImageRepository.flush();
+
+        // 2. Build the new list. Ensure the cover URL is included exactly once.
+        List<String> urls = new ArrayList<>();
+        for (String u : galleryUrls) {
+            if (u != null && !u.isBlank() && !urls.contains(u.trim())) {
+                urls.add(u.trim());
+            }
         }
+        if (primaryUrl != null && !primaryUrl.isBlank()) {
+            String primary = primaryUrl.trim();
+            // Move cover to the front; add it if it wasn't already in the list.
+            urls.remove(primary);
+            urls.add(0, primary);
+        }
+
+        // 3. Insert fresh rows. First gets primary=true; the rest false.
         for (int i = 0; i < urls.size(); i++) {
             VehicleImage image = new VehicleImage();
             image.setVehicle(vehicle);
-            image.setUrl(urls.get(i).trim());
+            image.setUrl(urls.get(i));
             image.setAltText(vehicle.displayName() + " photo " + (i + 1));
             image.setDisplayOrder(i);
             image.setPrimary(i == 0);
