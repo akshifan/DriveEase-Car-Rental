@@ -1,7 +1,9 @@
 # =============================================================================
 # DriveEase API - development profile
+#
 # Overrides for the base application.properties. Only settings that DIFFER
-# from the base belong here.
+# from the base belong here. No credentials in this file — all secrets come
+# from environment variables (see .env.example).
 # =============================================================================
 spring:
   jpa:
@@ -12,7 +14,7 @@ spring:
 
 driveease:
   seed:
-    enabled: false
+    enabled: ${SEED_DEMO_DATA:false}
 
 logging:
   level:
