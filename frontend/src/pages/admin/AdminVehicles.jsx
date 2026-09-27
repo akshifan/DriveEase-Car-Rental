@@ -214,7 +214,13 @@ export default function AdminVehicles() {
 
   const openEdit = (vehicle) => {
     setEditor({ mode: 'edit', vehicle });
-    setForm(toForm(vehicle));
+    const form = toForm(vehicle);
+    // If the vehicle has no cover but has gallery images, use the first gallery image
+    if (!form.imageUrl && form.galleryUrls) {
+      const first = toList(form.galleryUrls)[0];
+      if (first) form.imageUrl = first;
+    }
+    setForm(form);
     setFieldErrors({});
     setUploadedUrls((vehicle.gallery || []).map((g) => g.url));
   };
@@ -266,6 +272,10 @@ export default function AdminVehicles() {
           const merged = [...existing, ...uploaded]
             .filter((url, index, arr) => arr.indexOf(url) === index)   // dedupe
             .slice(0, MAX_GALLERY);
+
+          const shouldSetCover = !prev.imageUrl && existing.length === 0;
+
+
           return {
             ...prev,
             imageUrl: prev.imageUrl || merged[0],
@@ -722,27 +732,40 @@ export default function AdminVehicles() {
 
           {uploadedUrls.length > 0 && (
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-              {uploadedUrls.map((url, index) => (
-                <div
-                  key={url}
-                  className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-white/[0.07] bg-ink-850"
-                >
-                  <img src={mediaUrl(url)} alt="" className="h-full w-full object-cover" />
-                  {index === 0 && (
-                    <span className="absolute left-2 top-2 badge border-lime/40 bg-lime/10 text-lime">
-                      Cover
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => removeUploadedImage(url)}
-                    className="absolute right-2 top-2 rounded-full bg-ink-950/80 p-1 text-mist-200 opacity-0 transition group-hover:opacity-100 hover:text-signal-danger"
-                    aria-label="Remove image"
-                  >
-                    <Icon name="x" size={12} />
-                  </button>
-                </div>
-              ))}
+              {uploadedUrls.map((url) => {
+                const isCover = form.imageUrl === url;
+                return (
+                  <div key={url} className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-white/[0.07] bg-ink-850">
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+
+                    {isCover && (
+                      <span className="absolute left-2 top-2 badge border-lime/40 bg-lime/10 text-lime">
+          Cover
+        </span>
+                    )}
+
+                    {!isCover && (
+                      <button
+                        type="button"
+                        onClick={() => setForm((prev) => ({ ...prev, imageUrl: url }))}
+                        className="absolute bottom-2 left-2 rounded-full bg-ink-950/85 px-2 py-1 text-[10.5px] text-mist-200 opacity-0 transition group-hover:opacity-100 hover:text-lime"
+                        aria-label="Set as cover image"
+                      >
+                        Set as cover
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => removeUploadedImage(url)}
+                      className="absolute right-2 top-2 rounded-full bg-ink-950/80 p-1 text-mist-200 transition hover:text-signal-danger"
+                      aria-label="Remove image"
+                    >
+                      <Icon name="x" size={12} />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
 
