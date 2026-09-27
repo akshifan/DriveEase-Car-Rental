@@ -18,7 +18,9 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
+    open-in-view: false
   flyway:
+    enabled: true
     clean-disabled: true
     baseline-on-migrate: false
 
@@ -31,15 +33,25 @@ driveease:
     enabled: false
   jwt:
     secret: ${JWT_SECRET}
+    issuer: driveease-api
+    access-token-ttl-seconds: 3600
+    refresh-token-ttl-seconds: 604800
+    reset-token-ttl-minutes: 30
     cookie:
+      refresh-name: driveease_refresh
       secure: true
       same-site: None
-  payment:
-    gateway-mode: ${PAYMENT_GATEWAY_MODE:SANDBOX}
-  email:
-    provider: ${EMAIL_PROVIDER:mock}
-  cors:
-    allowed-origins: ${FRONTEND_URL}
+      path: /api/v1/auth
+
+    payment:
+      gateway-mode: ${PAYMENT_GATEWAY_MODE:SANDBOX}
+
+    email:
+      provider: ${EMAIL_PROVIDER:mock}
+
+    cors:
+      allowed-origins: ${FRONTEND_URL}
+
 
 logging:
   level:

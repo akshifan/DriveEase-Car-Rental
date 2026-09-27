@@ -14,9 +14,7 @@
 
 # Spring / Java
 application-local.properties
-application-prod.properties
 application-local.yml
-application-prod.yml
 
 # =========================================================
 # Backend - Node
