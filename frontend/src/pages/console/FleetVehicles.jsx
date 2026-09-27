@@ -160,7 +160,6 @@ export default function FleetVehicles() {
   };
 
   const openEdit = async (vehicle) => {
-    // Show the modal immediately with what we have; the gallery will fill in.
     setEditor({ mode: 'edit', vehicle });
     setForm(toForm(vehicle));
     setFieldErrors({});

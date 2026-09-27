@@ -38,6 +38,7 @@ import {
   VEHICLE_STATUS_LABELS,
 } from '../../utils/constants.js';
 import { mediaUrl } from '../../utils/media.js';
+import { getVehicle } from '../../api/vehicles.js';
 
 /** Hard cap on images per vehicle (mirrors the backend @Size(max = 15)). */
 const MAX_GALLERY = 15;
@@ -216,7 +217,6 @@ export default function AdminVehicles() {
   };
 
   const openEdit = async (vehicle) => {
-    // Show the modal immediately with what we have; the gallery will fill in.
     setEditor({ mode: 'edit', vehicle });
     setForm(toForm(vehicle));
     setFieldErrors({});
