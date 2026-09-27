@@ -568,7 +568,7 @@ export default function FleetVehicles() {
               label="Daily rate (₹)"
               type="number"
               required
-              min="1"
+              min="0"
               step="50"
               value={form.dailyRate}
               error={fieldErrors.dailyRate}
