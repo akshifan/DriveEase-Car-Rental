@@ -62,18 +62,26 @@ const ADMIN_NAV = [
   { to: '/admin/reports', label: 'Reports', icon: 'chart' },
 ];
 
+const ACCOUNT_NAV = [
+  { to: '/profile', label: 'Profile', icon: 'user' },
+];
+
+const PROFILE_ITEM = { to: '/profile', label: 'Profile', icon: 'user' };
+
 function sectionsForRole(role) {
   if (role === ROLES.ADMIN) {
     return [
-      { title: 'My account', items: CUSTOMER_NAV },
-      { title: 'My fleet', items: FLEET_NAV },
+      { title: 'My account', items: CUSTOMER_NAV },           // includes Profile
+      { title: 'My fleet', items: FLEET_NAV },                // no Profile
       { title: 'Administration', items: ADMIN_NAV },
     ];
   }
   if (role === ROLES.FLEET_MANAGER) {
-    return [{ title: 'My fleet', items: FLEET_NAV }];
+    return [
+      { title: 'My fleet', items: [...FLEET_NAV, PROFILE_ITEM] },  // Profile appended here
+    ];
   }
-  return [{ title: 'My account', items: CUSTOMER_NAV }];
+  return [{ title: 'My account', items: CUSTOMER_NAV }];      // includes Profile
 }
 
 export default function Navbar({ className = '' }) {

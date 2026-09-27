@@ -313,7 +313,13 @@ export default function AdminVehicles() {
     setFieldErrors({});
 
     const coverUrl = form.imageUrl.trim();
-    const galleryList = toList(form.galleryUrls).filter((u) => u !== coverUrl);
+    const galleryList = toList(form.galleryUrls);
+
+    // The backend derives the primary row from the cover and expects it in the list.
+    // Prepend it if the user has set one but it isn't already there.
+    if (coverUrl && !galleryList.includes(coverUrl)) {
+      galleryList.unshift(coverUrl);
+    }
 
     const payload = {
       make: form.make.trim(),
@@ -330,8 +336,8 @@ export default function AdminVehicles() {
       doors: Number(form.doors),
       fuelType: form.fuelType,
       transmission: form.transmission,
-      imageUrl: coverUrl || undefined,
-      galleryUrls: galleryList.length ? galleryList : undefined,
+      imageUrl: coverUrl || '',          // '' clears the cover; undefined means "leave unchanged"
+      galleryUrls: galleryList,          // ALWAYS an array; [] clears the gallery
       description: form.description.trim() || undefined,
       features: toList(form.features).length ? toList(form.features) : undefined,
     };

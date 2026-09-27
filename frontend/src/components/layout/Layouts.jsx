@@ -92,6 +92,8 @@ const ADMIN_NAV = [
   { to: '/admin/reports', label: 'Reports', icon: 'chart' },
 ];
 
+const PROFILE_ITEM = { to: '/profile', label: 'Profile', icon: 'user' };
+
 /**
  * Console shell. Each role sees exactly the sections its portal needs.
  *

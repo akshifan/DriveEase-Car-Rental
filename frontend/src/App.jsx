@@ -113,7 +113,6 @@ export default function App() {
             <Route path="checkout/:bookingId" element={<CheckoutPage />} />
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="payments/:paymentId" element={<ReceiptPage />} />
-            <Route path="profile" element={<ProfilePage />} />
             {/* Legacy path — kept so existing bookmarks / links still work. */}
             <Route path="dashboard/notifications" element={<NotificationsPage />} />
           </Route>
@@ -130,6 +129,7 @@ export default function App() {
               </RequireAuth>
             }
           >
+            <Route path="profile" element={<ProfilePage />} />
             <Route path="notifications" element={<NotificationsPage />} />
           </Route>
 
