@@ -7,6 +7,7 @@ import {
   TRANSMISSION_LABELS,
 } from '../../utils/constants.js';
 import { formatCurrency } from '../../utils/format.js';
+import { mediaUrl } from '../../utils/media.js';
 
 /**
  * Catalogue card — specification-forward.
@@ -33,7 +34,7 @@ export default function VehicleCard({ vehicle, showStatus = false }) {
       {vehicle.imageUrl ? (
         <Link to={detailHref} className="relative block aspect-[16/10] overflow-hidden bg-ink-850">
           <img
-            src={vehicle.imageUrl}
+            src={mediaUrl(vehicle.imageUrl)}
             alt={displayName}
             loading="lazy"
             decoding="async"

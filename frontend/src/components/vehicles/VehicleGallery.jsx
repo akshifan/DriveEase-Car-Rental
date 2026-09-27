@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Icon from '../ui/Icon.jsx';
+import { mediaUrl } from '../../utils/media.js';
 
 /**
  * Vehicle gallery.
@@ -31,7 +32,7 @@ export default function VehicleGallery({ images = [], name }) {
       >
         {active && !failed[activeIndex] ? (
           <img
-            src={active.url}
+            src={mediaUrl(active.url)}
             alt={active.altText || `${name} - view ${activeIndex + 1}`}
             className="h-full w-full object-cover"
             loading={activeIndex === 0 ? 'eager' : 'lazy'}
@@ -90,7 +91,7 @@ export default function VehicleGallery({ images = [], name }) {
                 </span>
               ) : (
                 <img
-                  src={image.url}
+                  src={mediaUrl(image.url)}
                   alt=""
                   loading="lazy"
                   decoding="async"

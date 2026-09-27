@@ -37,6 +37,7 @@ import {
   VEHICLE_STATUS,
   VEHICLE_STATUS_LABELS,
 } from '../../utils/constants.js';
+import { mediaUrl } from '../../utils/media.js';
 
 /** Hard cap on images per vehicle (mirrors the backend @Size(max = 15)). */
 const MAX_GALLERY = 15;
@@ -449,7 +450,7 @@ export default function AdminVehicles() {
                 <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.07] bg-ink-850">
                   {vehicle.imageUrl ? (
                     <img
-                      src={vehicle.imageUrl}
+                      src={mediaUrl(vehicle.imageUrl)}
                       alt=""
                       loading="lazy"
                       className="h-full w-full object-cover"
@@ -724,7 +725,7 @@ export default function AdminVehicles() {
                   key={url}
                   className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-white/[0.07] bg-ink-850"
                 >
-                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <img src={mediaUrl(url)} alt="" className="h-full w-full object-cover" />
                   {index === 0 && (
                     <span className="absolute left-2 top-2 badge border-lime/40 bg-lime/10 text-lime">
                       Cover
