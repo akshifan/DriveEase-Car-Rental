@@ -1,6 +1,7 @@
 package com.driveease.repository;
 
 import com.driveease.entity.VehicleImage;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 
@@ -14,6 +15,6 @@ public interface VehicleImageRepository extends JpaRepository<VehicleImage, Long
     List<VehicleImage> findByVehicleIdInAndPrimaryTrue(List<Long> vehicleIds);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Transactional
     void deleteByVehicleId(Long vehicleId);
-
 }

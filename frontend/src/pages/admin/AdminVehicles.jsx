@@ -73,6 +73,9 @@ const EMPTY_FORM = {
 
 /** Normalises a vehicle response into the form shape. */
 function toForm(vehicle) {
+  const gallery = (vehicle.gallery || []).map((g) => g.url);
+  const cover = vehicle.imageUrl || '';
+  const galleryWithoutCover = gallery.filter((u) => u !== cover);
   return {
     make: vehicle.make || '',
     model: vehicle.model || '',
@@ -88,8 +91,8 @@ function toForm(vehicle) {
     doors: vehicle.doors ?? 4,
     fuelType: vehicle.fuelType || 'PETROL',
     transmission: vehicle.transmission || 'AUTOMATIC',
-    imageUrl: vehicle.imageUrl || '',
-    galleryUrls: (vehicle.gallery || []).map((g) => g.url).join(', '),
+    imageUrl: cover,
+    galleryUrls: galleryWithoutCover.join(', '),
     description: vehicle.description || '',
     features: (vehicle.features || []).join(', '),
   };
@@ -278,7 +281,7 @@ export default function AdminVehicles() {
 
           return {
             ...prev,
-            imageUrl: prev.imageUrl || merged[0],
+            imageUrl: shouldSetCover ? merged[0] : prev.imageUrl,
             galleryUrls: merged.join(', '),
           };
         });
@@ -309,6 +312,7 @@ export default function AdminVehicles() {
     setSaving(true);
     setFieldErrors({});
 
+    const galleryList = toList(form.galleryUrls).filter((u) => u !== form.imageUrl);
     const payload = {
       make: form.make.trim(),
       model: form.model.trim(),
@@ -325,7 +329,7 @@ export default function AdminVehicles() {
       fuelType: form.fuelType,
       transmission: form.transmission,
       imageUrl: form.imageUrl.trim() || undefined,
-      galleryUrls: toList(form.galleryUrls).length ? toList(form.galleryUrls) : undefined,
+      galleryUrls: galleryList.length ? galleryList : undefined,
       description: form.description.trim() || undefined,
       features: toList(form.features).length ? toList(form.features) : undefined,
     };
