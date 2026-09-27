@@ -67,7 +67,7 @@ const EMPTY_FORM = {
 function toForm(vehicle) {
   const gallery = (vehicle.gallery || []).map((g) => g.url);
   const cover = vehicle.imageUrl || '';
-  const galleryWithoutCover = gallery.filter((u) => u !== cover);
+  const galleryWithCover = cover && !gallery.includes(cover) ? [cover, ...gallery] : gallery;
   return {
     make: vehicle.make || '',
     model: vehicle.model || '',
@@ -84,7 +84,7 @@ function toForm(vehicle) {
     fuelType: vehicle.fuelType || 'PETROL',
     transmission: vehicle.transmission || 'AUTOMATIC',
     imageUrl: cover,
-    galleryUrls: galleryWithoutCover.join(', '),
+    galleryUrls: galleryWithCover.join(', '),
     description: vehicle.description || '',
     features: (vehicle.features || []).join(', '),
   };
@@ -254,7 +254,14 @@ export default function FleetVehicles() {
     setSaving(true);
     setFieldErrors({});
 
-    const galleryList = toList(form.galleryUrls).filter((u) => u !== form.imageUrl);
+    const galleryList = toList(form.galleryUrls);
+    const coverUrl = form.imageUrl.trim();
+
+    // Ensure the cover is always part of the gallery sent to the backend
+    if (coverUrl && !galleryList.includes(coverUrl)) {
+      galleryList.unshift(coverUrl);
+    }
+
     const payload = {
       make: form.make.trim(),
       model: form.model.trim(),
@@ -270,7 +277,7 @@ export default function FleetVehicles() {
       doors: Number(form.doors),
       fuelType: form.fuelType,
       transmission: form.transmission,
-      imageUrl: form.imageUrl.trim() || undefined,
+      imageUrl: coverUrl || undefined,
       galleryUrls: galleryList.length ? galleryList : undefined,
       description: form.description.trim() || undefined,
       features: toList(form.features).length ? toList(form.features) : undefined,
