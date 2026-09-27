@@ -386,6 +386,7 @@ public class VehicleService {
     private void replaceGallery(Vehicle vehicle, List<String> galleryUrls, String primaryUrl) {
         if (galleryUrls == null) return;
         vehicleImageRepository.deleteByVehicleId(vehicle.getId());
+        vehicleImageRepository.flush();          // ← ADD THIS LINE
         List<String> urls = new ArrayList<>(galleryUrls.stream()
             .filter(u -> u != null && !u.isBlank())
             .distinct()
