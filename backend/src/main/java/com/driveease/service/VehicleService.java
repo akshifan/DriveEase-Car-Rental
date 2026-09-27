@@ -387,7 +387,9 @@ public class VehicleService {
         if (galleryUrls == null) return;
         vehicleImageRepository.deleteByVehicleId(vehicle.getId());
         List<String> urls = new ArrayList<>(galleryUrls.stream()
-            .filter(u -> u != null && !u.isBlank()).toList());
+            .filter(u -> u != null && !u.isBlank())
+            .distinct()
+            .toList());
         if (urls.isEmpty() && primaryUrl != null && !primaryUrl.isBlank()) {
             urls.add(primaryUrl);
         }

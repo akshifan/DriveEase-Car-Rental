@@ -263,7 +263,9 @@ export default function AdminVehicles() {
         setUploadedUrls((prev) => [...prev, ...uploaded]);
         setForm((prev) => {
           const existing = prev.galleryUrls ? toList(prev.galleryUrls) : [];
-          const merged = [...existing, ...uploaded].slice(0, MAX_GALLERY);
+          const merged = [...existing, ...uploaded]
+            .filter((url, index, arr) => arr.indexOf(url) === index)   // dedupe
+            .slice(0, MAX_GALLERY);
           return {
             ...prev,
             imageUrl: prev.imageUrl || merged[0],
