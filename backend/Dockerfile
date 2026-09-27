@@ -1,5 +1,6 @@
 # ── Build stage ───────────────────────────────────────────────
 FROM maven:3.9-eclipse-temurin-17 AS build
+ENV MAVEN_OPTS="-Xmx384m"
 WORKDIR /app
 COPY pom.xml .
 RUN mvn -q dependency:go-offline

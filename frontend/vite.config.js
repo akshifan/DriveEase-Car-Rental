@@ -32,7 +32,7 @@ export default defineConfig({
   preview: {
     host: true,
     port: 4173,
-    allowedHosts: ['.e2b.app', 'localhost', '127.0.0.1'],
+    allowedHosts: ['.e2b.app', '.onrender.com', 'localhost', '127.0.0.1'],
     // Mirrors the dev proxy so `npm run preview` can also be pointed at a
     // locally running backend without editing env vars.
     proxy: {
