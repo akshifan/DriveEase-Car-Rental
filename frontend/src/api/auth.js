@@ -15,12 +15,22 @@ export function login({ email, password }) {
   return api.post('/auth/login', { email, password }, { skipRefresh: true });
 }
 
+import { getStoredRefreshToken } from './client.js';
+
 export function refreshSession() {
-  return api.post('/auth/refresh', undefined, { skipRefresh: true });
+  const token = getStoredRefreshToken();
+  return api.post('/auth/refresh', undefined, {
+    skipRefresh: true,
+    headers: token ? { 'X-Refresh-Token': token } : undefined,
+  });
 }
 
 export function logout() {
-  return api.post('/auth/logout', undefined, { skipRefresh: true });
+  const token = getStoredRefreshToken();
+  return api.post('/auth/logout', undefined, {
+    skipRefresh: true,
+    headers: token ? { 'X-Refresh-Token': token } : undefined,
+  });
 }
 
 export function currentSession() {

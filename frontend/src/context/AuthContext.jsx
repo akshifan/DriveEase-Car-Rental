@@ -1,23 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { configureAuthBridge, setAccessToken } from '../api/client.js';
+import {
+  configureAuthBridge,
+  setAccessToken,
+  setStoredRefreshToken,
+  getStoredRefreshToken,
+  clearStoredRefreshToken,
+} from '../api/client.js';
 import * as authApi from '../api/auth.js';
 import { landingRouteFor } from '../utils/constants.js';
 
-/**
- * Session state for the whole app.
- *
- * Only genuine cross-cutting state lives here: who is signed in and whether the
- * session is still being restored. Everything else (lists, forms, filters)
- * stays local to the component that owns it.
- */
 const AuthContext = createContext(null);
 
-/**
- * Every storage key that is user-specific.
- * On logout all of these must be cleared so the next authenticated user never
- * inherits the previous user's view. Non-user keys (theme, layout prefs) are
- * deliberately NOT in this list.
- */
 const USER_SCOPED_KEYS = [
   'driveease.search-draft',
   'driveease.last-route',
@@ -34,29 +27,28 @@ function clearUserScopedStorage() {
       localStorage.removeItem(key);
     }
   } catch {
-    /* private mode / quota - nothing else to do */
+    /* private mode / quota */
   }
 }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [status, setStatus] = useState('restoring'); // restoring | anonymous | authenticated
+  const [status, setStatus] = useState('restoring');
   const mounted = useRef(true);
   const userRef = useRef(null);
 
   useEffect(() => {
     mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
+    return () => { mounted.current = false; };
   }, []);
 
-  useEffect(() => {
-    userRef.current = user;
-  }, [user]);
+  useEffect(() => { userRef.current = user; }, [user]);
 
   const applySession = useCallback((payload) => {
     setAccessToken(payload?.accessToken || null);
+    if (payload?.refreshToken) {
+      setStoredRefreshToken(payload.refreshToken);
+    }
     if (payload?.user) {
       setUser(payload.user);
       setStatus('authenticated');
@@ -68,6 +60,7 @@ export function AuthProvider({ children }) {
 
   const clearSession = useCallback(() => {
     setAccessToken(null);
+    clearStoredRefreshToken();
     setUser(null);
     setStatus('anonymous');
   }, []);
@@ -75,18 +68,16 @@ export function AuthProvider({ children }) {
   const refreshInFlight = useRef(null);
 
   const refreshSession = useCallback(() => {
-    if (refreshInFlight.current) {
-      return refreshInFlight.current;
-    }
+    if (refreshInFlight.current) return refreshInFlight.current;
     refreshInFlight.current = (async () => {
       try {
         const payload = await authApi.refreshSession();
         setAccessToken(payload?.accessToken || null);
-
-        let profile = userRef.current;
-        if (!profile) {
-          profile = await authApi.currentSession();
+        if (payload?.refreshToken) {
+          setStoredRefreshToken(payload.refreshToken);
         }
+        let profile = userRef.current;
+        if (!profile) profile = await authApi.currentSession();
         if (mounted.current) {
           setUser(profile);
           setStatus('authenticated');
@@ -106,6 +97,11 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // If no refresh token is stored, skip the network call entirely.
+      if (!getStoredRefreshToken()) {
+        if (!cancelled) clearSession();
+        return;
+      }
       try {
         const payload = await refreshSession();
         if (!cancelled) applySession(payload);
@@ -113,49 +109,30 @@ export function AuthProvider({ children }) {
         if (!cancelled) clearSession();
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = useCallback(
-    async (credentials) => {
-      const payload = await authApi.login(credentials);
-      applySession(payload);
-      return payload;
-    },
-    [applySession],
-  );
+  const login = useCallback(async (credentials) => {
+    const payload = await authApi.login(credentials);
+    applySession(payload);
+    return payload;
+  }, [applySession]);
 
-  const register = useCallback(
-    async (payload) => {
-      const session = await authApi.register(payload);
-      applySession(session);
-      return session;
-    },
-    [applySession],
-  );
+  const register = useCallback(async (payload) => {
+    const session = await authApi.register(payload);
+    applySession(session);
+    return session;
+  }, [applySession]);
 
-  /**
-   * Sign out.
-   *
-   * Order matters:
-   *   1. Revoke the refresh token server-side (best effort).
-   *   2. Clear the in-memory access token so no further API call carries it.
-   *   3. Clear the user object and flip status to anonymous.
-   *   4. Wipe every user-scoped storage key so a subsequent login on the same
-   *      browser starts with a clean slate.
-   *   5. Let the caller navigate; a hard reload is not required because
-   *      RequireAuth bounces any authenticated-view access once status flips.
-   */
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
     } catch {
-      // A failed sign-out must never trap the user in a signed-in shell.
+      /* ignore */
     } finally {
       setAccessToken(null);
+      clearStoredRefreshToken();
       setUser(null);
       setStatus('anonymous');
       clearUserScopedStorage();

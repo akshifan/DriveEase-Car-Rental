@@ -1,18 +1,24 @@
 package com.driveease.dto.auth;
 
 import com.driveease.dto.user.UserResponse;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * Access token is returned in the body; the refresh token travels in an
- * HttpOnly cookie so it is never reachable from JavaScript.
+ * Response for /auth/login, /auth/register, /auth/verify-fleet-email.
+ *
+ * The refresh token is included in the body so Safari (which blocks
+ * third-party cookies) can store it in localStorage and send it back
+ * via the X-Refresh-Token header.
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record AuthResponse(
-        String accessToken,
-        String tokenType,
-        long expiresIn,
-        UserResponse user
+    String accessToken,
+    String tokenType,
+    long expiresIn,
+    String refreshToken,
+    UserResponse user
 ) {
-    public AuthResponse(String accessToken, long expiresIn, UserResponse user) {
-        this(accessToken, "Bearer", expiresIn, user);
+    public AuthResponse(String accessToken, long expiresIn, String refreshToken, UserResponse user) {
+        this(accessToken, "Bearer", expiresIn, refreshToken, user);
     }
 }

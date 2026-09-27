@@ -1,17 +1,14 @@
 /**
  * Thin fetch wrapper for the DriveEase API.
  *
- * Responsibilities kept deliberately narrow:
- *  - attach the bearer token (access token lives in memory, refresh token is an
- *    HttpOnly cookie the browser replays automatically);
- *  - normalise every failure into an `ApiError` carrying the backend's stable
- *    error code, so callers branch on codes rather than parsing messages;
- *  - transparently retry once through POST /auth/refresh when an access token
- *    has expired, then replay the original request.
+ * The refresh token is stored in localStorage and sent via the
+ * X-Refresh-Token header. This bypasses Safari's third-party cookie
+ * blocking, which logs iOS users out on page reload if cookies are used.
  */
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 const API_PREFIX = '/api/v1';
+const REFRESH_STORAGE_KEY = 'driveease.refresh-token';
 
 export class ApiError extends Error {
   constructor({ message, code, status, fieldErrors, path }) {
@@ -23,26 +20,11 @@ export class ApiError extends Error {
     this.path = path;
   }
 
-  /** True when the caller should send the user back to the sign-in screen. */
-  get isUnauthenticated() {
-    return this.status === 401;
-  }
-
-  get isForbidden() {
-    return this.status === 403;
-  }
-
-  get isNotFound() {
-    return this.status === 404;
-  }
-
-  get isConflict() {
-    return this.status === 409;
-  }
-
-  get isValidation() {
-    return this.status === 400 || this.status === 422;
-  }
+  get isUnauthenticated() { return this.status === 401; }
+  get isForbidden()       { return this.status === 403; }
+  get isNotFound()        { return this.status === 404; }
+  get isConflict()        { return this.status === 409; }
+  get isValidation()      { return this.status === 400 || this.status === 422; }
 }
 
 let accessToken = null;
@@ -58,7 +40,32 @@ export function getAccessToken() {
   return accessToken;
 }
 
-/** AuthContext registers the refresh/logout callbacks here. */
+/* ---------- refresh token storage (localStorage) ---------- */
+
+export function getStoredRefreshToken() {
+  try {
+    return localStorage.getItem(REFRESH_STORAGE_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredRefreshToken(token) {
+  try {
+    if (token) {
+      localStorage.setItem(REFRESH_STORAGE_KEY, token);
+    } else {
+      localStorage.removeItem(REFRESH_STORAGE_KEY);
+    }
+  } catch {
+    /* storage blocked — non-fatal */
+  }
+}
+
+export function clearStoredRefreshToken() {
+  setStoredRefreshToken(null);
+}
+
 export function configureAuthBridge({ refresh, onLost }) {
   refreshHandler = refresh;
   onSessionLost = onLost;
@@ -69,7 +76,6 @@ export function apiUrl(path) {
   return `${BASE_URL}${API_PREFIX}${suffix}`;
 }
 
-/** Absolute URL for endpoints outside /api/v1 (OpenAPI, actuator). */
 export function rootUrl(path) {
   const suffix = path.startsWith('/') ? path : `/${path}`;
   return `${BASE_URL}${suffix}`;
@@ -94,11 +100,7 @@ async function parseBody(response) {
   if (response.status === 204) return null;
   const type = response.headers.get('content-type') || '';
   if (type.includes('application/json')) {
-    try {
-      return await response.json();
-    } catch {
-      return null;
-    }
+    try { return await response.json(); } catch { return null; }
   }
   if (type.includes('text/csv') || type.includes('text/plain')) {
     return response.text();
@@ -146,8 +148,8 @@ async function rawRequest(path, { method = 'GET', body, params, headers, signal,
 }
 
 /**
- * Public entry point. Handles one transparent refresh-and-retry cycle so
- * expired access tokens never surface as errors to the user.
+ * Public entry point. Handles one transparent refresh-and-retry cycle.
+ * The refresh call sends the token from localStorage in X-Refresh-Token.
  */
 export async function request(path, options = {}) {
   try {
@@ -188,20 +190,15 @@ export const api = {
   put: (path, body, options) => request(path, { ...options, method: 'PUT', body }),
   delete: (path, options) => request(path, { ...options, method: 'DELETE' }),
 
-  /**
-   * Blob/CSV downloads keep the raw Response. Accept * /* so endpoints that
-  * declare `produces = "text/csv"` are not rejected by content negotiation.
-    */
-    download: (path, options = {}) =>
-  rawRequest(path, {
-    ...options,
-    method: 'GET',
-    headers: { Accept: '*/*', ...(options.headers || {}) },
-    raw: true,
-  }),
+  download: (path, options = {}) =>
+    rawRequest(path, {
+      ...options,
+      method: 'GET',
+      headers: { Accept: '*/*', ...(options.headers || {}) },
+      raw: true,
+    }),
 };
 
-/** Convenience for CSV endpoints: triggers a real browser download. */
 export async function downloadCsv(path, filename, params) {
   const response = await api.download(path, { params });
   if (!response.ok) {
