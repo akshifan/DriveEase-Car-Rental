@@ -38,6 +38,7 @@ import {
   VEHICLE_STATUS_LABELS,
 } from '../../utils/constants.js';
 import { mediaUrl } from '../../utils/media.js';
+import { getVehicle } from '../../api/vehicles.js';
 
 /** Hard cap on images per vehicle (mirrors the backend @Size(max = 15)). */
 const MAX_GALLERY = 15;
@@ -158,17 +159,26 @@ export default function FleetVehicles() {
     setUploadedUrls([]);
   };
 
-  const openEdit = (vehicle) => {
+  const openEdit = async (vehicle) => {
+    // Show the modal immediately with what we have; the gallery will fill in.
     setEditor({ mode: 'edit', vehicle });
-    const form = toForm(vehicle);
-    // If the vehicle has no cover but has gallery images, use the first gallery image
-    if (!form.imageUrl && form.galleryUrls) {
-      const first = toList(form.galleryUrls)[0];
-      if (first) form.imageUrl = first;
-    }
-    setForm(form);
+    setForm(toForm(vehicle));
     setFieldErrors({});
     setUploadedUrls((vehicle.gallery || []).map((g) => g.url));
+
+    try {
+      const full = await getVehicle(vehicle.id);
+      const form = toForm(full);
+      if (!form.imageUrl && form.galleryUrls) {
+        const first = toList(form.galleryUrls)[0];
+        if (first) form.imageUrl = first;
+      }
+      setForm(form);
+      setUploadedUrls((full.gallery || []).map((g) => g.url));
+    } catch (failure) {
+      const apiError = failure instanceof ApiError ? failure : new ApiError({ message: failure.message });
+      toast.error('Could not load vehicle images', apiError.message);
+    }
   };
 
   const closeEditor = () => {
