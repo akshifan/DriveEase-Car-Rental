@@ -113,7 +113,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(corsProperties.originList());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With","X-Refresh-Token"));
         configuration.setExposedHeaders(List.of("Content-Disposition", "Location"));
         configuration.setAllowCredentials(true);      // required for the HttpOnly refresh cookie
         configuration.setMaxAge(3600L);
