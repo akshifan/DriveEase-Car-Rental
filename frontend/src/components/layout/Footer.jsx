@@ -53,11 +53,11 @@ export default function Footer() {
   </span>
 
               <a
-                href="mailto:akshifan@driveease.app"
+                href="mailto:driveease234@gmail.com"
                 className="inline-flex text-sm font-medium items-center gap-[2px] text-mist-400 no-underline mt-4"
               >
                 <Icon name="mail" size={17} />
-                <span>akshifan@driveease.app</span>
+                <span>driveease234@gmail.com</span>
               </a>
 
               <a

@@ -45,7 +45,7 @@ export default function SupportPage() {
               +91 80731 03243
             </Button>
             <Button href="mailto:hello@driveease.app" variant="ghost" icon="mail">
-              akshifan@driveease.app
+              driveease234@gmail.com
             </Button>
           </div>
         </div>

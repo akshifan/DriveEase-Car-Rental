@@ -137,7 +137,7 @@ export default function RegisterFleetPage() {
             </li>
             <li className="flex items-start gap-2">
               <Icon name="info" size={14} className="mt-0.5 shrink-0 text-mist-400" />
-              If you don't see it, check spam — the sender is <span className="text-mist-100">no-reply@driveease</span>.
+              If you don't see it, check spam — the sender is <span className="text-mist-100">driveease234@gmail.com</span>.
             </li>
             <li className="flex items-start gap-2">
               <Icon name="info" size={14} className="mt-0.5 shrink-0 text-mist-400" />
