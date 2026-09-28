@@ -386,29 +386,27 @@ public class VehicleService {
     private void replaceGallery(Vehicle vehicle, List<String> galleryUrls, String primaryUrl) {
         if (galleryUrls == null) return;
 
-        // Delete old rows and force flush so uq_vehicle_images_primary is released.
+        // 1. Bulk delete — runs immediately as a single SQL DELETE.
         vehicleImageRepository.deleteByVehicleId(vehicle.getId());
         vehicleImageRepository.flush();
 
-        // Build deduped list, cover first.
+        // 2. Build the list.
         List<String> urls = new ArrayList<>();
         String cover = primaryUrl == null ? null : primaryUrl.trim();
-
         if (cover != null && !cover.isBlank()) {
             urls.add(cover);
         }
         for (String u : galleryUrls) {
             if (u == null) continue;
             String trimmed = u.trim();
-            if (trimmed.isEmpty() || trimmed.equals(cover) || urls.contains(trimmed)) {
-                continue;
-            }
+            if (trimmed.isEmpty() || trimmed.equals(cover) || urls.contains(trimmed)) continue;
             urls.add(trimmed);
         }
 
+        // 3. Insert fresh rows using the repository directly.
         for (int i = 0; i < urls.size(); i++) {
             VehicleImage image = new VehicleImage();
-            image.setVehicle(vehicle);
+            image.setVehicle(vehicle);        // sets the FK, does not cascade
             image.setUrl(urls.get(i));
             image.setAltText(vehicle.displayName() + " photo " + (i + 1));
             image.setDisplayOrder(i);
