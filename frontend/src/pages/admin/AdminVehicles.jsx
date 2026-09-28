@@ -325,7 +325,6 @@ export default function AdminVehicles() {
     const galleryList = toList(form.galleryUrls);
 
     // The backend derives the primary row from the cover and expects it in the list.
-    // Prepend it if the user has set one but it isn't already there.
     if (coverUrl && !galleryList.includes(coverUrl)) {
       galleryList.unshift(coverUrl);
     }
@@ -345,8 +344,8 @@ export default function AdminVehicles() {
       doors: Number(form.doors),
       fuelType: form.fuelType,
       transmission: form.transmission,
-      imageUrl: coverUrl || '',          // '' clears the cover; undefined means "leave unchanged"
-      galleryUrls: galleryList,          // ALWAYS an array; [] clears the gallery
+      imageUrl: coverUrl || '',           // '' clears the cover
+      galleryUrls: galleryList,            // ALWAYS an array; [] clears the gallery
       description: form.description.trim() || undefined,
       features: toList(form.features).length ? toList(form.features) : undefined,
     };
