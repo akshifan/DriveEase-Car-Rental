@@ -230,8 +230,11 @@ export default function AdminVehicles() {
         if (first) form.imageUrl = first;
       }
       setForm(form);
-      setUploadedUrls((full.gallery || []).map((g) => g.url));
-    } catch (failure) {
+      setUploadedUrls(
+        (full.gallery || [])
+          .map((g) => g.url)
+          .filter((url, i, arr) => arr.indexOf(url) === i)
+      );    } catch (failure) {
       const apiError = failure instanceof ApiError ? failure : new ApiError({ message: failure.message });
       toast.error('Could not load vehicle images', apiError.message);
     }
@@ -752,10 +755,10 @@ export default function AdminVehicles() {
 
           {uploadedUrls.length > 0 && (
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-              {uploadedUrls.map((url) => {
-                const isCover = form.imageUrl === url;
+              {uploadedUrls.map((url, index) => {
+                const isCover = typeof form.imageUrl === 'string' && form.imageUrl === url;
                 return (
-                  <div key={url} className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-white/[0.07] bg-ink-850">
+                  <div key={`${url}-${index}`}  className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-white/[0.07] bg-ink-850">
                     <img src={url} alt="" className="h-full w-full object-cover" />
 
                     {isCover && (
