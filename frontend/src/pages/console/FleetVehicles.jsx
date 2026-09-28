@@ -66,9 +66,19 @@ const EMPTY_FORM = {
 
 /** Normalises a vehicle response into the form shape. */
 function toForm(vehicle) {
-  const gallery = (vehicle.gallery || []).map((g) => g.url);
   const cover = vehicle.imageUrl || '';
-  const galleryWithCover = cover && !gallery.includes(cover) ? [cover, ...gallery] : gallery;
+
+  const gallery = (vehicle.gallery || [])
+    .map((image) => image.url)
+    .filter(Boolean);
+
+  const galleryWithCover = [
+    ...(cover ? [cover] : []),
+    ...gallery,
+  ].filter(
+    (url, index, array) => array.indexOf(url) === index
+  );
+
   return {
     make: vehicle.make || '',
     model: vehicle.model || '',
@@ -223,19 +233,31 @@ export default function FleetVehicles() {
       }
 
       if (uploaded.length) {
-        setUploadedUrls((prev) => [...prev, ...uploaded]);
+        setUploadedUrls((prev) => {
+          return [...prev, ...uploaded]
+            .filter(
+              (url, index, array) =>
+                array.indexOf(url) === index
+            )
+            .slice(0, MAX_GALLERY);
+        });
+
         setForm((prev) => {
-          const existing = prev.galleryUrls ? toList(prev.galleryUrls) : [];
+          const existing = toList(prev.galleryUrls);
+
           const merged = [...existing, ...uploaded]
-            .filter((url, index, arr) => arr.indexOf(url) === index)   // dedupe
+            .filter(
+              (url, index, array) =>
+                array.indexOf(url) === index
+            )
             .slice(0, MAX_GALLERY);
 
-          const shouldSetCover = !prev.imageUrl && existing.length === 0;
-
+          const imageUrl =
+            prev.imageUrl || merged[0] || '';
 
           return {
             ...prev,
-            imageUrl: shouldSetCover ? merged[0] : prev.imageUrl,
+            imageUrl,
             galleryUrls: merged.join(', '),
           };
         });
@@ -248,13 +270,27 @@ export default function FleetVehicles() {
   };
 
   const removeUploadedImage = (url) => {
-    setUploadedUrls((prev) => prev.filter((u) => u !== url));
+    setUploadedUrls((prev) =>
+      prev.filter((item) => item !== url)
+    );
+
     setForm((prev) => {
-      const remaining = toList(prev.galleryUrls).filter((u) => u !== url);
+      const remaining = toList(prev.galleryUrls)
+        .filter((item) => item !== url)
+        .filter(
+          (item, index, array) =>
+            array.indexOf(item) === index
+        );
+
+      const nextCover =
+        prev.imageUrl === url
+          ? (remaining[0] || '')
+          : prev.imageUrl;
+
       return {
         ...prev,
+        imageUrl: nextCover,
         galleryUrls: remaining.join(', '),
-        imageUrl: prev.imageUrl === url ? (remaining[0] || '') : prev.imageUrl,
       };
     });
   };
@@ -267,12 +303,14 @@ export default function FleetVehicles() {
     setFieldErrors({});
 
     const coverUrl = form.imageUrl.trim();
-    const galleryList = toList(form.galleryUrls);
 
-    // The backend derives the primary row from the cover and expects it in the list.
-    if (coverUrl && !galleryList.includes(coverUrl)) {
-      galleryList.unshift(coverUrl);
-    }
+    const galleryList = [
+      ...(coverUrl ? [coverUrl] : []),
+      ...toList(form.galleryUrls),
+    ].filter(
+      (url, index, array) =>
+        array.indexOf(url) === index
+    );
 
     const payload = {
       make: form.make.trim(),
@@ -281,18 +319,29 @@ export default function FleetVehicles() {
       category: form.category,
       licensePlate: form.licensePlate.trim().toUpperCase(),
       vin: form.vin.trim() || undefined,
-      dailyRate: form.dailyRate === '' ? undefined : Number(form.dailyRate),
-      depositAmount: form.depositAmount === '' ? undefined : Number(form.depositAmount),
+      dailyRate:
+        form.dailyRate === ''
+          ? undefined
+          : Number(form.dailyRate),
+      depositAmount:
+        form.depositAmount === ''
+          ? undefined
+          : Number(form.depositAmount),
       location: form.location.trim() || undefined,
-      mileage: form.mileage === '' ? undefined : Number(form.mileage),
+      mileage:
+        form.mileage === ''
+          ? undefined
+          : Number(form.mileage),
       seats: Number(form.seats),
       doors: Number(form.doors),
       fuelType: form.fuelType,
       transmission: form.transmission,
-      imageUrl: coverUrl || '',           // '' clears the cover
-      galleryUrls: galleryList,            // ALWAYS an array; [] clears the gallery
+      imageUrl: coverUrl || '',
+      galleryUrls: galleryList,
       description: form.description.trim() || undefined,
-      features: toList(form.features).length ? toList(form.features) : undefined,
+      features: toList(form.features).length
+        ? toList(form.features)
+        : undefined,
     };
 
     try {

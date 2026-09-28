@@ -383,35 +383,61 @@ public class VehicleService {
             .orElseThrow(() -> new ResourceNotFoundException("Vehicle", vehicleId));
     }
 
-    private void replaceGallery(Vehicle vehicle, List<String> galleryUrls, String primaryUrl) {
-        if (galleryUrls == null) return;
+    private void replaceGallery(
+        Vehicle vehicle,
+        List<String> galleryUrls,
+        String primaryUrl
+    ) {
+        if (galleryUrls == null) {
+            return;
+        }
 
-        // 1. Bulk delete — runs immediately as a single SQL DELETE.
-        vehicleImageRepository.deleteByVehicleId(vehicle.getId());
-        vehicleImageRepository.flush();
+        // Keep Hibernate's in-memory collection synchronized.
+        vehicle.getImages().clear();
 
-        // 2. Build the list.
         List<String> urls = new ArrayList<>();
-        String cover = primaryUrl == null ? null : primaryUrl.trim();
+
+        String cover = primaryUrl == null
+            ? null
+            : primaryUrl.trim();
+
+        // Cover is always first.
         if (cover != null && !cover.isBlank()) {
             urls.add(cover);
         }
-        for (String u : galleryUrls) {
-            if (u == null) continue;
-            String trimmed = u.trim();
-            if (trimmed.isEmpty() || trimmed.equals(cover) || urls.contains(trimmed)) continue;
+
+        // Add gallery images without duplicates.
+        for (String url : galleryUrls) {
+            if (url == null) {
+                continue;
+            }
+
+            String trimmed = url.trim();
+
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+
+            if (urls.contains(trimmed)) {
+                continue;
+            }
+
             urls.add(trimmed);
         }
 
-        // 3. Insert fresh rows using the repository directly.
+        // Rebuild the managed collection.
         for (int i = 0; i < urls.size(); i++) {
             VehicleImage image = new VehicleImage();
-            image.setVehicle(vehicle);        // sets the FK, does not cascade
+
+            image.setVehicle(vehicle);
             image.setUrl(urls.get(i));
-            image.setAltText(vehicle.displayName() + " photo " + (i + 1));
+            image.setAltText(
+                vehicle.displayName() + " photo " + (i + 1)
+            );
             image.setDisplayOrder(i);
             image.setPrimary(i == 0);
-            vehicleImageRepository.save(image);
+
+            vehicle.getImages().add(image);
         }
     }
 
